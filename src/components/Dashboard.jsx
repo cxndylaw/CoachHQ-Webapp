@@ -43,27 +43,48 @@ function parseTime(timeStr) {
   return d
 }
 
-// For demo: sessions start very soon (10s, 60s, 120s from now)
-function getMockSessions() {
-  const now = new Date()
-  const fmt = (d) => {
-    let h = d.getHours(), m = d.getMinutes()
-    const mer = h >= 12 ? 'PM' : 'AM'
-    if (h > 12) h -= 12
-    if (h === 0) h = 12
-    return `${h}:${String(m).padStart(2,'0')} ${mer}`
-  }
-  const t1 = new Date(now.getTime() + 10000)   // 10s from now
-  const t2 = new Date(now.getTime() + 90000)   // 90s from now
-  const t3 = new Date(now.getTime() + 180000)  // 3min from now
-  return [
-    { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: fmt(t1) },
-    { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: fmt(t2) },
-    { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: fmt(t3) },
-  ]
-}
+// // For demo: sessions start very soon (10s, 60s, 120s from now)
+// function getMockSessions() {
+//   const now = new Date()
+//   const fmt = (d) => {
+//     let h = d.getHours(), m = d.getMinutes()
+//     const mer = h >= 12 ? 'PM' : 'AM'
+//     if (h > 12) h -= 12
+//     if (h === 0) h = 12
+//     return `${h}:${String(m).padStart(2,'0')} ${mer}`
+//   }
+//   const t1 = new Date(now.getTime() + 10000)   // 10s from now
+//   const t2 = new Date(now.getTime() + 90000)   // 90s from now
+//   const t3 = new Date(now.getTime() + 180000)  // 3min from now
+//   return [
+//     { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: fmt(t1) },
+//     { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: fmt(t2) },
+//     { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: fmt(t3) },
+//   ]
+// }
 
-const SESSIONS_DATA = getMockSessions()
+// const SESSIONS_DATA = getMockSessions()
+
+const SESSIONS_DATA = [
+  { 
+    name: 'Alex Thompson', 
+    drill: 'Footwork drill', 
+    level: 'Advanced', 
+    time: '10:30 AM' 
+  },
+  { 
+    name: 'Jordan Davis', 
+    drill: 'Smash technique', 
+    level: 'Inter', 
+    time: '1:00 PM' 
+  },
+  { 
+    name: 'Sam Martinez', 
+    drill: 'Net play', 
+    level: 'Beginner', 
+    time: '3:30 PM' 
+  },
+]
 const WARN_BEFORE_SECS = 60 // show alert 60s before
 
 export default function Dashboard({ coachName }) {
