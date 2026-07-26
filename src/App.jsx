@@ -23,6 +23,12 @@ export default function App() {
   const navigateTo = (p) => {
     setPage(p)
     localStorage.setItem(PAGE_KEY, p)
+
+    // Scroll content back to top
+    document.querySelector('.page-scroll')?.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    })
   }
 
   useEffect(() => {
