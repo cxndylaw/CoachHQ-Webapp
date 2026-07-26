@@ -1,66 +1,100 @@
-export default function Dashboard() {
-  const stats = [
-    { label: 'Today', value: '3' },
-    { label: 'Students', value: '12' },
-    { label: 'Drills', value: '48' },
-    { label: 'This week', value: '18' }
-  ]
+const G = {
+  position: 'relative',
+  isolation: 'isolate',
+  background: 'rgba(255,255,255,0.55)',
+  border: '1px solid rgba(255,255,255,0.85)',
+  WebkitBackdropFilter: 'blur(20px)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: 20,
+  boxShadow: '0 2px 20px rgba(90,60,170,0.07)',
+  padding: 20,
+  marginBottom: 12,
+}
 
+const AV = {
+  width: 42, height: 42, borderRadius: '50%',
+  background: 'rgba(90,60,170,0.1)',
+  border: '1.5px solid rgba(90,60,170,0.2)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  fontSize: 12, fontWeight: 700, color: '#5a3aaa', flexShrink: 0,
+}
+
+const PILL = {
+  fontSize: 11, fontWeight: 700, color: '#5a3aaa',
+  background: 'rgba(90,60,170,0.08)',
+  border: '1.5px solid rgba(90,60,170,0.15)',
+  padding: '4px 12px', borderRadius: 20,
+}
+
+export default function Dashboard() {
   const sessions = [
-    { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: '10:30 AM' },
-    { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: '11:45 AM' },
-    { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: '2:00 PM' }
+    { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced' },
+    { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter' },
+    { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner' },
+  ]
+  const top = [
+    { name: 'Lee Smith', n: 24 },
+    { name: 'Alex Thompson', n: 16 },
+    { name: 'Rachel Park', n: 11 },
   ]
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="text-xs font-semibold text-frost-text/50 uppercase tracking-wider mb-1">Good morning</div>
-        <h1 className="text-3xl font-bold">Coach Sarah</h1>
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>Good morning</div>
+        <div style={{ fontSize: 36, fontWeight: 800, color: '#1e1040', letterSpacing: '-0.5px' }}>Coach Sarah</div>
       </div>
 
       {/* Bar chart */}
-      <div className="glass-card p-4 mb-4">
-        <div className="flex justify-between items-center mb-4">
-          <span className="text-xs font-semibold text-frost-text/50 uppercase">Sessions this week</span>
-          <span className="text-frost-accent font-semibold">18 total</span>
+      <div style={G}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sessions this week</span>
+          <span style={{ fontSize: 13, fontWeight: 800, color: '#5a3aaa' }}>18 total</span>
         </div>
-        <div className="flex gap-1 items-end h-16">
-          {[42, 58, 35, 88, 65, 95, 50].map((h, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className={`w-full rounded-t ${h > 80 ? 'bg-frost-accent/60' : 'bg-frost-accent/18'}`}
-                style={{ height: h + '%' }}
-              />
-              <div className="text-xs text-frost-text/30">{'MTWTFSS'[i]}</div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 80 }}>
+          {[42,58,35,88,65,95,50].map((h,i) => (
+            <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%', justifyContent:'flex-end' }}>
+              <div style={{ width:'100%', height:h+'%', borderRadius:'6px 6px 0 0', background: h>80 ? 'rgba(90,60,170,0.6)' : 'rgba(90,60,170,0.15)' }} />
+              <div style={{ fontSize:10, color:'rgba(30,16,64,0.3)', fontWeight:600 }}>{'MTWTFSS'[i]}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {stats.map((s) => (
-          <div key={s.label} className="stat-card p-4">
-            <div className="text-2xl font-bold text-frost-accent">{s.value}</div>
-            <div className="text-xs text-frost-text/50 uppercase mt-1">{s.label}</div>
+      {/* Stats */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
+        {[["3","TODAY'S SESSIONS"],["12","STUDENTS"],["48","DRILLS"],["18","THIS WEEK"]].map(([v,l]) => (
+          <div key={l} style={{ ...G, marginBottom:0, padding:'20px 18px' }}>
+            <div style={{ fontSize:36, fontWeight:800, color:'#2e1870', letterSpacing:'-1px', lineHeight:1 }}>{v}</div>
+            <div style={{ fontSize:10, fontWeight:700, color:'rgba(30,16,64,0.35)', textTransform:'uppercase', letterSpacing:'0.1em', marginTop:8 }}>{l}</div>
           </div>
         ))}
       </div>
 
-      {/* Sessions */}
-      <div className="section-title">📅 Upcoming sessions</div>
-      <div className="space-y-2">
-        {sessions.map((s, i) => (
-          <div key={i} className="glass-card p-4 flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-frost-accent/15 flex items-center justify-center text-xs font-bold text-frost-accent flex-shrink-0">
-              {s.name.split(' ').map(n => n[0]).join('')}
+      {/* Upcoming */}
+      <div style={{ fontSize:11, fontWeight:700, color:'rgba(30,16,64,0.38)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10 }}>Upcoming sessions</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
+        {sessions.map((s,i) => (
+          <div key={i} style={{ ...G, marginBottom:0, padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={AV}>{s.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:600, color:'#1e1040', marginBottom:2 }}>{s.name}</div>
+              <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)' }}>{s.drill}</div>
             </div>
-            <div className="flex-1">
-              <div className="font-medium text-sm">{s.name}</div>
-              <div className="text-xs text-frost-text/50">{s.drill}</div>
-            </div>
-            <div className="text-xs font-semibold bg-frost-accent/10 text-frost-accent px-2 py-1 rounded-full self-start">{s.level}</div>
+            <div style={PILL}>{s.level}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Top students */}
+      <div style={{ fontSize:11, fontWeight:700, color:'rgba(30,16,64,0.38)', textTransform:'uppercase', letterSpacing:'0.12em', marginBottom:10 }}>Top students</div>
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {top.map((s,i) => (
+          <div key={i} style={{ ...G, marginBottom:0, padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={AV}>{s.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div style={{ flex:1, fontSize:15, fontWeight:600, color:'#1e1040' }}>{s.name}</div>
+            <div style={{ fontSize:12, color:'rgba(30,16,64,0.35)' }}>{s.n} sessions</div>
+            <div style={{ fontSize:20, color:'rgba(90,60,170,0.3)' }}>›</div>
           </div>
         ))}
       </div>

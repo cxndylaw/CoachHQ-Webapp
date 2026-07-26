@@ -1,49 +1,65 @@
 import { useState } from 'react'
 
+const G = {
+  background: 'rgba(255,255,255,0.55)',
+  border: '1px solid rgba(255,255,255,0.85)',
+  WebkitBackdropFilter: 'blur(20px)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: 20,
+  boxShadow: '0 2px 20px rgba(90,60,170,0.07)',
+}
+
+const AV = {
+  width:42, height:42, borderRadius:'50%',
+  background:'rgba(90,60,170,0.1)', border:'1.5px solid rgba(90,60,170,0.2)',
+  display:'flex', alignItems:'center', justifyContent:'center',
+  fontSize:12, fontWeight:700, color:'#5a3aaa', flexShrink:0,
+}
+
+const STUDENTS = [
+  { name:'Lee Smith', sessions:24, level:'Advanced', last:'Today' },
+  { name:'Jordan Davis', sessions:18, level:'Inter', last:'Yesterday' },
+  { name:'Alex Thompson', sessions:16, level:'Advanced', last:'2 days ago' },
+  { name:'Sam Martinez', sessions:12, level:'Beginner', last:'3 days ago' },
+  { name:'Rachel Park', sessions:11, level:'Inter', last:'Today' },
+]
+
 export default function Students() {
   const [search, setSearch] = useState('')
+  const [active, setActive] = useState('All')
 
-  const students = [
-    { id: 1, name: 'Lee Smith', sessions: 24, level: 'Advanced', lastSeen: 'Today' },
-    { id: 2, name: 'Jordan Davis', sessions: 18, level: 'Intermediate', lastSeen: 'Yesterday' },
-    { id: 3, name: 'Alex Thompson', sessions: 16, level: 'Advanced', lastSeen: '2 days ago' },
-    { id: 4, name: 'Sam Martinez', sessions: 12, level: 'Beginner', lastSeen: '3 days ago' },
-    { id: 5, name: 'Rachel Park', sessions: 11, level: 'Intermediate', lastSeen: 'Today' }
-  ]
-
-  const filtered = students.filter(s => s.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = STUDENTS.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase()) &&
+    (active === 'All' || s.level === active)
+  )
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Students</h1>
-      
-      <input
-        type="text"
-        placeholder="Search students..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full px-4 py-2 border border-frost-accent/20 rounded-lg bg-white/50 mb-4 focus:outline-none focus:ring-2 focus:ring-frost-accent"
-      />
+      <div style={{ fontSize:36, fontWeight:800, color:'#1e1040', letterSpacing:'-0.5px', marginBottom:20 }}>Students</div>
 
-      <div className="flex gap-2 mb-4">
-        {['All', 'Beginner', 'Inter', 'Advanced'].map((f) => (
-          <button key={f} className="px-3 py-1 text-sm rounded-lg border border-frost-accent/20 bg-white/50 hover:bg-white/70">
-            {f}
-          </button>
+      <input placeholder="Search students..." value={search} onChange={e=>setSearch(e.target.value)}
+        style={{ width:'100%', padding:'12px 16px', borderRadius:14, border:'1px solid rgba(90,60,170,0.15)', background:'rgba(255,255,255,0.55)', WebkitBackdropFilter:'blur(10px)', backdropFilter:'blur(10px)', fontSize:14, color:'#1e1040', marginBottom:12, outline:'none', boxSizing:'border-box' }} />
+
+      <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+        {['All','Beginner','Inter','Advanced'].map(f => (
+          <button key={f} onClick={()=>setActive(f)} style={{
+            padding:'7px 14px', borderRadius:10, border:'1.5px solid rgba(90,60,170,0.15)',
+            background: active===f ? '#5a3aaa' : 'rgba(255,255,255,0.55)',
+            color: active===f ? '#fff' : '#5a3aaa',
+            fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit',
+          }}>{f}</button>
         ))}
       </div>
 
-      <div className="space-y-2">
-        {filtered.map((s) => (
-          <div key={s.id} className="glass-card p-4 flex gap-3">
-            <div className="w-10 h-10 rounded-full bg-frost-accent/15 flex items-center justify-center font-bold text-frost-accent flex-shrink-0">
-              {s.name.split(' ').map(n => n[0]).join('')}
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {filtered.map((s,i) => (
+          <div key={i} style={{ ...G, padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={AV}>{s.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:600, color:'#1e1040', marginBottom:2 }}>{s.name}</div>
+              <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)' }}>{s.sessions} sessions · {s.level}</div>
             </div>
-            <div className="flex-1">
-              <div className="font-medium">{s.name}</div>
-              <div className="text-xs text-frost-text/50">{s.sessions} sessions · {s.level}</div>
-            </div>
-            <div className="text-xs text-frost-text/40 self-center text-right">{s.lastSeen}</div>
+            <div style={{ fontSize:11, color:'rgba(30,16,64,0.3)' }}>{s.last}</div>
           </div>
         ))}
       </div>

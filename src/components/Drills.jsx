@@ -1,40 +1,43 @@
 import { useState } from 'react'
 
+const G = {
+  background: 'rgba(255,255,255,0.55)',
+  border: '1px solid rgba(255,255,255,0.85)',
+  WebkitBackdropFilter: 'blur(20px)',
+  backdropFilter: 'blur(20px)',
+  borderRadius: 20,
+  boxShadow: '0 2px 20px rgba(90,60,170,0.07)',
+}
+
+const CATS = [
+  { name:'Footwork', n:8, icon:'👣' },
+  { name:'Technique', n:12, icon:'🎾' },
+  { name:'Smash', n:6, icon:'⚡' },
+  { name:'Serve', n:5, icon:'🎯' },
+  { name:'Speed & Stamina', n:9, icon:'💨' },
+  { name:'Tactics', n:7, icon:'🧠' },
+]
+
 export default function Drills() {
   const [search, setSearch] = useState('')
-
-  const categories = [
-    { name: 'Footwork', drills: 8, icon: '👣' },
-    { name: 'Technique', drills: 12, icon: '🎾' },
-    { name: 'Smash', drills: 6, icon: '⚡' },
-    { name: 'Serve', drills: 5, icon: '🎯' },
-    { name: 'Speed & Stamina', drills: 9, icon: '💨' },
-    { name: 'Tactics', drills: 7, icon: '🧠' }
-  ]
-
-  const filtered = categories.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = CATS.filter(c => c.name.toLowerCase().includes(search.toLowerCase()))
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-4">Drills</h1>
-      
-      <input
-        type="text"
-        placeholder="Search drills..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full px-4 py-2 border border-frost-accent/20 rounded-lg bg-white/50 mb-4 focus:outline-none focus:ring-2 focus:ring-frost-accent"
-      />
+      <div style={{ fontSize:36, fontWeight:800, color:'#1e1040', letterSpacing:'-0.5px', marginBottom:20 }}>Drills</div>
 
-      <div className="space-y-2">
-        {filtered.map((c) => (
-          <div key={c.name} className="glass-card p-4 flex gap-3 items-center cursor-pointer hover:bg-white/65">
-            <div className="text-2xl">{c.icon}</div>
-            <div className="flex-1">
-              <div className="font-medium">{c.name}</div>
-              <div className="text-xs text-frost-text/50">{c.drills} drills</div>
+      <input placeholder="Search drills..." value={search} onChange={e=>setSearch(e.target.value)}
+        style={{ width:'100%', padding:'12px 16px', borderRadius:14, border:'1px solid rgba(90,60,170,0.15)', background:'rgba(255,255,255,0.55)', WebkitBackdropFilter:'blur(10px)', backdropFilter:'blur(10px)', fontSize:14, color:'#1e1040', marginBottom:16, outline:'none', boxSizing:'border-box' }} />
+
+      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        {filtered.map((c,i) => (
+          <div key={i} style={{ ...G, padding:'16px', display:'flex', alignItems:'center', gap:14, cursor:'pointer' }}>
+            <span style={{ fontSize:26 }}>{c.icon}</span>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:600, color:'#1e1040', marginBottom:2 }}>{c.name}</div>
+              <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)' }}>{c.n} drills</div>
             </div>
-            <div className="text-frost-text/40">→</div>
+            <div style={{ fontSize:20, color:'rgba(90,60,170,0.3)' }}>›</div>
           </div>
         ))}
       </div>
