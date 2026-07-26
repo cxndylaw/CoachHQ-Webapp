@@ -1,45 +1,84 @@
 import { useState, useEffect } from 'react'
 import { onAuthStateChange, getSession } from './lib/auth'
+import { getProfile } from './lib/supabase'
 import Auth from './components/Auth'
 import Dashboard from './components/Dashboard'
 import Students from './components/Students'
 import Drills from './components/Drills'
 import Schedule from './components/Schedule'
+import Settings from './components/Settings'
 import Navbar from './components/Navbar'
+import LoadingScreen from './components/LoadingScreen'
 import './index.css'
 
 const BG = 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)'
+const PAGE_KEY = 'coachHQ_page'
 
 export default function App() {
   const [user, setUser] = useState(null)
-  const [page, setPage] = useState('dashboard')
+  const [profile, setProfile] = useState(null)
+  const [page, setPage] = useState(() => localStorage.getItem(PAGE_KEY) || 'dashboard')
   const [loading, setLoading] = useState(true)
 
+  const navigateTo = (p) => {
+    setPage(p)
+    localStorage.setItem(PAGE_KEY, p)
+  }
+
   useEffect(() => {
-    getSession().then(({ session }) => {
-      if (session?.user) setUser(session.user)
+    getSession().then(async ({ session }) => {
+      if (session?.user) {
+        setUser(session.user)
+        const p = await getProfile(session.user.id)
+        setProfile(p)
+      }
       setLoading(false)
     })
-    const { data: { subscription } } = onAuthStateChange(u => setUser(u))
+    const { data: { subscription } } = onAuthStateChange(async (u) => {
+      setUser(u)
+      if (u) {
+        const p = await getProfile(u.id)
+        setProfile(p)
+      }
+    })
     return () => subscription?.unsubscribe()
   }, [])
 
-  if (loading) return (
-    <div style={{ background: BG, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui,sans-serif' }}>
-      <span style={{ color: '#5a3aaa' }}>Loading...</span>
-    </div>
-  )
+  if (loading) return <LoadingScreen />
+  if (!user) return <Auth onSuccess={() => window.location.reload()} />
 
-  if (!user) return <Auth onSuccess={() => {}} />
+  const coachName = profile?.name || user?.email?.split('@')[0] || 'Coach'
 
-  const pages = { dashboard: <Dashboard />, students: <Students />, drills: <Drills />, schedule: <Schedule /> }
+  const pages = {
+    dashboard: <Dashboard coachName={coachName} />,
+    students: <Students />,
+    drills: <Drills />,
+    schedule: <Schedule />,
+    settings: <Settings user={user} profile={profile} coachName={coachName} onNameUpdate={(name) => setProfile(p => ({ ...p, name }))} />,
+  }
 
   return (
-    <div style={{ background: BG, minHeight: '100vh', fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,sans-serif', color: '#1e1040' }}>
-      <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 20px 120px' }}>
-        {pages[page]}
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      background: BG,
+      fontFamily: 'system-ui,-apple-system,BlinkMacSystemFont,sans-serif',
+      color: '#1e1040',
+    }}>
+      {/* Scrollable content area — nav never moves */}
+      <div style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+      }}>
+        <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 20px 40px' }}>
+          {pages[page]}
+        </div>
       </div>
-      <Navbar current={page} setPage={setPage} />
+
+      {/* Nav always pinned at bottom */}
+      <Navbar current={page} setPage={navigateTo} />
     </div>
   )
 }
