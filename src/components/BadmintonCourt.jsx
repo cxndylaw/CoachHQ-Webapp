@@ -20,8 +20,8 @@ export default function BadmintonCourt({ courtData, onSave }) {
   )
   const [lines, setLines] = useState(courtData?.lines || [])
 
-  const courtWidth = 600
-  const courtHeight = 400
+  const courtWidth = 400
+  const courtHeight = 600
   const padding = 20
   const currentPlayer = players[selectedPlayer]
 
@@ -173,7 +173,7 @@ export default function BadmintonCourt({ courtData, onSave }) {
       >
         {/* Court background */}
         <rect x={padding} y={padding} width={courtWidth - padding * 2} height={courtHeight - padding * 2}
-          fill="rgba(76,175,80,0.15)" stroke="#1e1040" strokeWidth="2" />
+          fill="rgba(76,175,80,0.1)" stroke="#1e1040" strokeWidth="2" />
 
         {/* Doubles boundary (outer) - left and right sidelines */}
         <line x1={padding + 20} y1={padding} x2={padding + 20} y2={courtHeight - padding}
@@ -196,14 +196,43 @@ export default function BadmintonCourt({ courtData, onSave }) {
           stroke="#1e1040" strokeWidth="2" />
 
         {/* Service line (top) - horizontal line dividing service box */}
-        <line x1={padding + 20} y1={padding + 70} x2={courtWidth - padding - 20} y2={padding + 70}
+        <line x1={padding + 20} y1={padding + 80} x2={courtWidth - padding - 20} y2={padding + 80}
           stroke="#1e1040" strokeWidth="1.5" />
 
         {/* Service line (bottom) - horizontal line dividing service box */}
-        <line x1={padding + 20} y1={courtHeight - padding - 70} x2={courtWidth - padding - 20} y2={courtHeight - padding - 70}
+        <line x1={padding + 20} y1={courtHeight - padding - 80} x2={courtWidth - padding - 20} y2={courtHeight - padding - 80}
           stroke="#1e1040" strokeWidth="1.5" />
 
-        {/* Net line (center) - dashed */}
+        {/* Colored zones */}
+        {/* Cyan zone (top service area) */}
+        <rect x={padding + 20} y={padding} width={courtWidth - padding * 2 - 40} height={50}
+          fill="rgba(34,211,238,0.3)" stroke="none" />
+        <line x1={padding + 20} y1={padding + 50} x2={courtWidth - padding - 20} y2={padding + 50}
+          stroke="#06b6d4" strokeWidth="3" />
+
+        {/* Magenta zone (upper middle) */}
+        <line x1={padding + 20} y1={padding + 110} x2={courtWidth - padding - 20} y2={padding + 110}
+          stroke="#ec4899" strokeWidth="3" />
+
+        {/* Blue zone (center/net area - long section) */}
+        <rect x={padding + 20} y={padding + 135} width={courtWidth - padding * 2 - 40} height={180}
+          fill="rgba(59,130,246,0.2)" stroke="none" />
+        <line x1={padding + 20} y1={padding + 135} x2={courtWidth - padding - 20} y2={padding + 135}
+          stroke="#3b82f6" strokeWidth="4" />
+        <line x1={padding + 20} y1={padding + 315} x2={courtWidth - padding - 20} y2={padding + 315}
+          stroke="#3b82f6" strokeWidth="4" />
+
+        {/* Magenta zone (lower middle) */}
+        <line x1={padding + 20} y1={courtHeight - padding - 110} x2={courtWidth - padding - 20} y2={courtHeight - padding - 110}
+          stroke="#ec4899" strokeWidth="3" />
+
+        {/* Cyan zone (bottom service area) */}
+        <rect x={padding + 20} y={courtHeight - padding - 50} width={courtWidth - padding * 2 - 40} height={50}
+          fill="rgba(34,211,238,0.3)" stroke="none" />
+        <line x1={padding + 20} y1={courtHeight - padding - 50} x2={courtWidth - padding - 20} y2={courtHeight - padding - 50}
+          stroke="#06b6d4" strokeWidth="3" />
+
+        {/* Net line (center) - dashed white */}
         <line x1={padding + 20} y1={courtHeight / 2} x2={courtWidth - padding - 20} y2={courtHeight / 2}
           stroke="#fff" strokeWidth="3" strokeDasharray="8,4" />
 

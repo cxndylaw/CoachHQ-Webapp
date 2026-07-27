@@ -243,11 +243,12 @@ export default function Drills() {
     }
   }
 
-  const categories = [...new Set(drills.map(d => d.category).filter(Boolean))].sort()
+  // Extract main categories (before the " - ")
+  const mainCategories = [...new Set(drills.map(d => d.category ? d.category.split(' - ')[0] : null).filter(Boolean))].sort()
   
   const filtered = drills.filter(d => {
     const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase())
-    const matchesCategory = !selectedCategory || d.category === selectedCategory
+    const matchesCategory = !selectedCategory || d.category?.startsWith(selectedCategory)
     return matchesSearch && matchesCategory
   })
 
@@ -285,45 +286,30 @@ export default function Drills() {
           />
         </div>
 
-        {/* Category Filter */}
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
-          <button 
-            onClick={() => setSelectedCategory(null)}
+        {/* Category Filter Dropdown */}
+        <div style={{ marginBottom: 12 }}>
+          <select 
+            value={selectedCategory || ''} 
+            onChange={e => setSelectedCategory(e.target.value || null)}
             style={{
-              padding: '6px 12px',
-              borderRadius: 20,
-              background: !selectedCategory ? '#5a3aaa' : 'rgba(90,60,170,0.1)',
-              color: !selectedCategory ? '#fff' : '#5a3aaa',
-              border: 'none',
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              transition: 'all 0.2s'
+              width: '100%',
+              padding: '10px 12px',
+              borderRadius: 12,
+              border: '1.5px solid rgba(90,60,170,0.15)',
+              background: 'rgba(255,255,255,0.55)',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              color: '#1e1040',
+              outline: 'none',
+              boxSizing: 'border-box',
+              cursor: 'pointer'
             }}
           >
-            All Drills
-          </button>
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              style={{
-                padding: '6px 12px',
-                borderRadius: 20,
-                background: selectedCategory === cat ? '#5a3aaa' : 'rgba(90,60,170,0.1)',
-                color: selectedCategory === cat ? '#fff' : '#5a3aaa',
-                border: 'none',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s'
-              }}
-            >
-              {cat.split(' - ')[0]}
-            </button>
-          ))}
+            <option value="">All Drills</option>
+            {mainCategories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
         </div>
       </div>
 
