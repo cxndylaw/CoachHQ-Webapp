@@ -171,23 +171,45 @@ export default function BadmintonCourt({ courtData, onSave }) {
         viewBox={`0 0 ${courtWidth} ${courtHeight}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        {/* Court boundary */}
+        {/* Court background */}
         <rect x={padding} y={padding} width={courtWidth - padding * 2} height={courtHeight - padding * 2}
-          fill="none" stroke="#1e1040" strokeWidth="2" />
+          fill="rgba(76,175,80,0.15)" stroke="#1e1040" strokeWidth="2" />
 
-        {/* Center line */}
-        <line x1={padding} y1={courtHeight / 2} x2={courtWidth - padding} y2={courtHeight / 2}
-          stroke="#1e1040" strokeWidth="1.5" strokeDasharray="5,5" />
+        {/* Doubles boundary (outer) - left and right sidelines */}
+        <line x1={padding + 20} y1={padding} x2={padding + 20} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="2" />
+        <line x1={courtWidth - padding - 20} y1={padding} x2={courtWidth - padding - 20} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="2" />
 
-        {/* Service lines */}
-        <line x1={padding + 80} y1={padding} x2={padding + 80} y2={courtHeight - padding}
-          stroke="rgba(30,16,64,0.3)" strokeWidth="1" />
-        <line x1={courtWidth - padding - 80} y1={padding} x2={courtWidth - padding - 80} y2={courtHeight - padding}
-          stroke="rgba(30,16,64,0.3)" strokeWidth="1" />
+        {/* Singles boundary (inner) - left and right sidelines */}
+        <line x1={padding + 60} y1={padding} x2={padding + 60} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="1.5" />
+        <line x1={courtWidth - padding - 60} y1={padding} x2={courtWidth - padding - 60} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="1.5" />
 
-        {/* Net */}
-        <line x1={padding} y1={courtHeight / 2} x2={courtWidth - padding} y2={courtHeight / 2}
-          stroke="#ef4444" strokeWidth="4" opacity="0.3" />
+        {/* Top baseline (doubles) */}
+        <line x1={padding + 20} y1={padding} x2={courtWidth - padding - 20} y2={padding}
+          stroke="#1e1040" strokeWidth="2" />
+
+        {/* Bottom baseline (doubles) */}
+        <line x1={padding + 20} y1={courtHeight - padding} x2={courtWidth - padding - 20} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="2" />
+
+        {/* Service line (top) - horizontal line dividing service box */}
+        <line x1={padding + 20} y1={padding + 70} x2={courtWidth - padding - 20} y2={padding + 70}
+          stroke="#1e1040" strokeWidth="1.5" />
+
+        {/* Service line (bottom) - horizontal line dividing service box */}
+        <line x1={padding + 20} y1={courtHeight - padding - 70} x2={courtWidth - padding - 20} y2={courtHeight - padding - 70}
+          stroke="#1e1040" strokeWidth="1.5" />
+
+        {/* Net line (center) - dashed */}
+        <line x1={padding + 20} y1={courtHeight / 2} x2={courtWidth - padding - 20} y2={courtHeight / 2}
+          stroke="#fff" strokeWidth="3" strokeDasharray="8,4" />
+
+        {/* Center service line (vertical) */}
+        <line x1={courtWidth / 2} y1={padding} x2={courtWidth / 2} y2={courtHeight - padding}
+          stroke="#1e1040" strokeWidth="1.5" />
 
         {/* Arrow marker definition */}
         <defs>

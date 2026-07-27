@@ -198,6 +198,7 @@ export default function Drills() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [coachId, setCoachId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState(null)
 
   useEffect(() => {
     loadDrills()
@@ -242,9 +243,13 @@ export default function Drills() {
     }
   }
 
-  const filtered = drills.filter(d => 
-    d.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const categories = [...new Set(drills.map(d => d.category).filter(Boolean))].sort()
+  
+  const filtered = drills.filter(d => {
+    const matchesSearch = d.name.toLowerCase().includes(search.toLowerCase())
+    const matchesCategory = !selectedCategory || d.category === selectedCategory
+    return matchesSearch && matchesCategory
+  })
 
   if (selected) {
     return (
@@ -270,7 +275,7 @@ export default function Drills() {
       </div>
 
       <div style={{ marginBottom: 16 }}>
-        <div style={{ position: 'relative' }}>
+        <div style={{ position: 'relative', marginBottom: 12 }}>
           <SearchIcon size={18} color="rgba(30,16,64,0.3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
           <input 
             value={search} 
@@ -278,6 +283,47 @@ export default function Drills() {
             placeholder="Search drills..." 
             style={{ width: '100%', padding: '11px 12px 11px 40px', borderRadius: 12, border: '1.5px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }} 
           />
+        </div>
+
+        {/* Category Filter */}
+        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 8 }}>
+          <button 
+            onClick={() => setSelectedCategory(null)}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 20,
+              background: !selectedCategory ? '#5a3aaa' : 'rgba(90,60,170,0.1)',
+              color: !selectedCategory ? '#fff' : '#5a3aaa',
+              border: 'none',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              transition: 'all 0.2s'
+            }}
+          >
+            All Drills
+          </button>
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat)}
+              style={{
+                padding: '6px 12px',
+                borderRadius: 20,
+                background: selectedCategory === cat ? '#5a3aaa' : 'rgba(90,60,170,0.1)',
+                color: selectedCategory === cat ? '#fff' : '#5a3aaa',
+                border: 'none',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                transition: 'all 0.2s'
+              }}
+            >
+              {cat.split(' - ')[0]}
+            </button>
+          ))}
         </div>
       </div>
 

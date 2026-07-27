@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { SearchIcon, ChevronRight, CalendarIcon, ClockIcon, ClipboardIcon, UsersIcon, PencilIcon } from './Icons'
-import { getStudents, addStudent, updateStudent, deleteStudent, getCurrentCoachId } from '../lib/supabase-db'
+import { getStudents, addStudent, updateStudent, deleteStudent, getCurrentCoachId, addSession, getDrills } from '../lib/supabase-db'
 
 const G = {
   position: 'relative',
@@ -84,7 +84,91 @@ function AddStudentModal({ onClose, onAdd, coachId }) {
   )
 }
 
-function StudentDetailView({ student, onBack, onEdit, onDelete, coachId }) {
+function ScheduleSessionModal({ student, onClose, onSchedule, coachId }) {
+  const [form, setForm] = useState({ day: 'Monday', time: '18:00', drill_id: '' })
+  const [drills, setDrills] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadDrills = async () => {
+      try {
+        const data = await getDrills(coachId)
+        setDrills(data)
+      } catch (error) {
+        console.error('Error loading drills:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadDrills()
+  }, [coachId])
+
+  const handleSchedule = async () => {
+    if (!form.drill_id) {
+      alert('Please select a drill')
+      return
+    }
+    await onSchedule({
+      student_id: student.id,
+      student_name: student.name,
+      day: form.day,
+      time: form.time,
+      drill_id: form.drill_id,
+    })
+    onClose()
+  }
+
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+      padding: 20,
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
+        borderRadius: 24, padding: '24px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(90,60,170,0.3)',
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e1040', marginBottom: 20 }}>
+          Schedule Session for {student.name}
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Day</label>
+          <select value={form.day} onChange={e => setForm({...form, day: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }}>
+            {days.map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Time</label>
+          <input type="time" value={form.time} onChange={e => setForm({...form, time: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Drill *</label>
+          {loading ? (
+            <div style={{ color: 'rgba(30,16,64,0.4)', fontSize: 14 }}>Loading drills...</div>
+          ) : (
+            <select value={form.drill_id} onChange={e => setForm({...form, drill_id: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }}>
+              <option value="">Select a drill...</option>
+              {drills.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          )}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <button onClick={onClose} style={{ padding: '12px', borderRadius: 12, background: 'rgba(90,60,170,0.1)', border: '1.5px solid rgba(90,60,170,0.15)', color: '#5a3aaa', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={handleSchedule} style={{ padding: '12px', borderRadius: 12, background: '#5a3aaa', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Schedule</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function StudentDetailView({ student, onBack, onEdit, onDelete, onScheduleSession, coachId }) {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDelete = async () => {
@@ -112,7 +196,10 @@ function StudentDetailView({ student, onBack, onEdit, onDelete, coachId }) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <button onClick={() => onScheduleSession(student)} style={{ padding: '10px', borderRadius: 12, background: 'rgba(90,183,182,0.08)', border: '1.5px solid rgba(90,183,182,0.15)', color: '#06b6d4', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <CalendarIcon size={14} color="#06b6d4" /> Schedule
+          </button>
           <button onClick={() => onEdit(student)} style={{ padding: '10px', borderRadius: 12, background: 'rgba(90,60,170,0.08)', border: '1.5px solid rgba(90,60,170,0.15)', color: '#5a3aaa', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <PencilIcon size={14} color="#5a3aaa" /> Edit
           </button>
@@ -158,13 +245,14 @@ function StudentDetailView({ student, onBack, onEdit, onDelete, coachId }) {
   )
 }
 
-export default function Students() {
+export default function Students({ onNavigateToSchedule }) {
   const [search, setSearch] = useState('')
   const [students, setStudents] = useState([])
   const [selected, setSelected] = useState(null)
   const [showAddModal, setShowAddModal] = useState(false)
   const [coachId, setCoachId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [studentToSchedule, setStudentToSchedule] = useState(null)
 
   useEffect(() => {
     loadStudents()
@@ -209,6 +297,10 @@ export default function Students() {
     }
   }
 
+  const handleScheduleSession = (student) => {
+    setStudentToSchedule(student)
+  }
+
   const filtered = students.filter(s => 
     s.name.toLowerCase().includes(search.toLowerCase())
   )
@@ -220,15 +312,38 @@ export default function Students() {
         onBack={() => setSelected(null)} 
         onEdit={handleUpdateStudent}
         onDelete={handleDeleteStudent}
+        onScheduleSession={handleScheduleSession}
         coachId={coachId}
       />
     )
+  }
+
+  const handleScheduleSessionConfirm = async (sessionData) => {
+    if (coachId) {
+      try {
+        await addSession(coachId, sessionData)
+        alert(`Session scheduled for ${studentToSchedule.name}!`)
+        setStudentToSchedule(null)
+      } catch (error) {
+        console.error('Error scheduling session:', error)
+        alert('Failed to schedule session')
+      }
+    }
   }
 
   return (
     <div>
       {showAddModal && coachId && (
         <AddStudentModal onClose={() => setShowAddModal(false)} onAdd={handleAddStudent} coachId={coachId} />
+      )}
+
+      {studentToSchedule && coachId && (
+        <ScheduleSessionModal 
+          student={studentToSchedule}
+          onClose={() => setStudentToSchedule(null)}
+          onSchedule={handleScheduleSessionConfirm}
+          coachId={coachId}
+        />
       )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
