@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { ClockIcon, ChevronRight, CalendarIcon, ClipboardCheckIcon, UsersIcon, ClipboardIcon, CalendarStatsIcon } from './Icons'
 import SessionPlan from './SessionPlan'
+import SessionRatingPopup from './SessionRatingPopup'
 
 const G = {
   position: 'relative',
@@ -33,7 +34,6 @@ function formatDuration(secs) {
 }
 
 function parseTime(timeStr) {
-  // Parse "10:30 AM" into today's Date
   const [time, meridiem] = timeStr.split(' ')
   let [h, m] = time.split(':').map(Number)
   if (meridiem === 'PM' && h !== 12) h += 12
@@ -43,58 +43,39 @@ function parseTime(timeStr) {
   return d
 }
 
-// // For demo: sessions start very soon (10s, 60s, 120s from now)
-// function getMockSessions() {
-//   const now = new Date()
-//   const fmt = (d) => {
-//     let h = d.getHours(), m = d.getMinutes()
-//     const mer = h >= 12 ? 'PM' : 'AM'
-//     if (h > 12) h -= 12
-//     if (h === 0) h = 12
-//     return `${h}:${String(m).padStart(2,'0')} ${mer}`
-//   }
-//   const t1 = new Date(now.getTime() + 10000)   // 10s from now
-//   const t2 = new Date(now.getTime() + 90000)   // 90s from now
-//   const t3 = new Date(now.getTime() + 180000)  // 3min from now
-//   return [
-//     { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: fmt(t1) },
-//     { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: fmt(t2) },
-//     { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: fmt(t3) },
-//   ]
-// }
+function getMockSessions() {
+  const now = new Date()
+  const fmt = (d) => {
+    let h = d.getHours(), m = d.getMinutes()
+    const mer = h >= 12 ? 'PM' : 'AM'
+    if (h > 12) h -= 12
+    if (h === 0) h = 12
+    return `${h}:${String(m).padStart(2,'0')} ${mer}`
+  }
+  const t1 = new Date(now.getTime() + 10000)
+  const t2 = new Date(now.getTime() + 90000)
+  const t3 = new Date(now.getTime() + 180000)
+  return [
+    { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: fmt(t1) },
+    { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: fmt(t2) },
+    { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: fmt(t3) },
+  ]
+}
 
-// const SESSIONS_DATA = getMockSessions()
-
-const SESSIONS_DATA = [
-  { 
-    name: 'Alex Thompson', 
-    drill: 'Footwork drill', 
-    level: 'Advanced', 
-    time: '10:30 AM' 
-  },
-  { 
-    name: 'Jordan Davis', 
-    drill: 'Smash technique', 
-    level: 'Inter', 
-    time: '1:00 PM' 
-  },
-  { 
-    name: 'Sam Martinez', 
-    drill: 'Net play', 
-    level: 'Beginner', 
-    time: '3:30 PM' 
-  },
-]
-const WARN_BEFORE_SECS = 60 // show alert 60s before
+const SESSIONS_DATA = getMockSessions()
+const WARN_BEFORE_SECS = 60
 
 export default function Dashboard({ coachName }) {
   const [viewingSession, setViewingSession] = useState(null)
+  const [viewingStudent, setViewingStudent] = useState(null)
   const [activeSession, setActiveSession] = useState(null)
   const [elapsed, setElapsed] = useState(0)
   const [sessionStartedAt, setSessionStartedAt] = useState(null)
-  const [alert, setAlert] = useState(null) // { session, secondsUntil }
+  const [alert, setAlert] = useState(null)
   const [dismissedAlerts, setDismissedAlerts] = useState([])
   const [endConfirm, setEndConfirm] = useState(false)
+  const [showRatingPopup, setShowRatingPopup] = useState(false)
+  const [justEndedSession, setJustEndedSession] = useState(null)
   const intervalRef = useRef(null)
   const alertCheckRef = useRef(null)
 
@@ -106,7 +87,6 @@ export default function Dashboard({ coachName }) {
     { v: '18', l: 'This week', Icon: CalendarStatsIcon },
   ]
 
-  // Session elapsed timer
   useEffect(() => {
     if (activeSession && sessionStartedAt) {
       intervalRef.current = setInterval(() => {
@@ -119,10 +99,9 @@ export default function Dashboard({ coachName }) {
     return () => clearInterval(intervalRef.current)
   }, [activeSession, sessionStartedAt])
 
-  // Alert checker — runs every second
   useEffect(() => {
     alertCheckRef.current = setInterval(() => {
-      if (activeSession) return // don't alert if session already running
+      if (activeSession) return
       const now = Date.now()
       for (const s of SESSIONS_DATA) {
         const sessionTime = parseTime(s.time).getTime()
@@ -137,7 +116,6 @@ export default function Dashboard({ coachName }) {
     return () => clearInterval(alertCheckRef.current)
   }, [activeSession, dismissedAlerts, alert])
 
-  // Update alert countdown
   useEffect(() => {
     if (!alert) return
     const t = setInterval(() => {
@@ -156,15 +134,30 @@ export default function Dashboard({ coachName }) {
   }
 
   const handleEndSession = () => {
+    setJustEndedSession(activeSession)
+    setShowRatingPopup(true)
     setActiveSession(null)
     setSessionStartedAt(null)
     setElapsed(0)
     setEndConfirm(false)
   }
 
+  const handleSaveRatings = (ratings) => {
+    console.log('Session ratings saved:', justEndedSession, ratings)
+    setShowRatingPopup(false)
+    setJustEndedSession(null)
+  }
+
   const dismissAlert = () => {
     if (alert) setDismissedAlerts(d => [...d, alert.key])
     setAlert(null)
+  }
+
+  // Viewing student details (from session plan)
+  if (viewingStudent) {
+    return (
+      <StudentDetailView student={viewingStudent} onBack={() => setViewingStudent(null)} />
+    )
   }
 
   if (viewingSession) {
@@ -177,12 +170,22 @@ export default function Dashboard({ coachName }) {
         onBack={() => setViewingSession(null)}
         onStartSession={() => handleStartSession(viewingSession)}
         onEndSession={handleEndSession}
+        onViewStudent={() => setViewingStudent(viewingSession)}
       />
     )
   }
 
   return (
     <div>
+      {/* Rating popup after session */}
+      {showRatingPopup && justEndedSession && (
+        <SessionRatingPopup
+          student={justEndedSession}
+          onClose={() => { setShowRatingPopup(false); setJustEndedSession(null) }}
+          onSave={handleSaveRatings}
+        />
+      )}
+
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{getGreeting()}</div>
@@ -192,7 +195,7 @@ export default function Dashboard({ coachName }) {
         </div>
       </div>
 
-      {/* ── ALERT POPUP ── */}
+      {/* ALERT POPUP */}
       {alert && (
         <div style={{
           marginBottom: 16, borderRadius: 20, padding: '16px 18px',
@@ -236,10 +239,9 @@ export default function Dashboard({ coachName }) {
         </div>
       )}
 
-      {/* ── ACTIVE SESSION BANNER ── */}
+      {/* ACTIVE SESSION BANNER */}
       {activeSession && (
         <div style={{ marginBottom: 16, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(90,60,170,0.25)' }}>
-          {/* Main banner */}
           <div
             onClick={() => setViewingSession(activeSession)}
             style={{
@@ -257,7 +259,6 @@ export default function Dashboard({ coachName }) {
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{activeSession.drill}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-              {/* Live timer */}
               <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>
                 {formatDuration(elapsed)}
               </div>
@@ -268,7 +269,6 @@ export default function Dashboard({ coachName }) {
             </div>
           </div>
 
-          {/* End session bar */}
           {!endConfirm ? (
             <button onClick={() => setEndConfirm(true)} style={{
               width: '100%', padding: '11px', background: 'rgba(239,68,68,0.12)',
@@ -380,9 +380,21 @@ export default function Dashboard({ coachName }) {
         ))}
       </div>
 
-      <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-      `}</style>
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
+    </div>
+  )
+}
+
+// Placeholder for student detail view (to be populated from Students.jsx)
+function StudentDetailView({ student, onBack }) {
+  return (
+    <div>
+      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#5a3aaa', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 }}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5a3aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m7-7l-7 7 7 7" /></svg>
+        Back
+      </button>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#1e1040' }}>{student.name}</div>
+      <p style={{ color: 'rgba(30,16,64,0.5)', marginTop: 8 }}>Student details page coming soon...</p>
     </div>
   )
 }

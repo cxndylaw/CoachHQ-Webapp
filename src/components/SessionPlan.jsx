@@ -50,7 +50,7 @@ const LEVEL_COLOR = {
   Advanced: '#5a3aaa', Inter: '#3b82f6', Beginner: '#16a34a'
 }
 
-export default function SessionPlan({ student, session, onBack, onStartSession, onEndSession, isActive, elapsed }) {
+export default function SessionPlan({ student, session, onBack, onStartSession, onEndSession, isActive, elapsed, onViewStudent }) {
   const [drills, setDrills] = useState([
     { id: 1, name: 'Full Court Footwork', category: 'Footwork', done: false, rating: 0 },
     { id: 2, name: 'Net Kill', category: 'Technique', done: false, rating: 0 },
@@ -82,25 +82,27 @@ export default function SessionPlan({ student, session, onBack, onStartSession, 
         Home
       </button>
 
-      {/* Student header */}
-      <div style={{ marginBottom: 12, borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 20px rgba(90,60,170,0.07)' }}>
+      {/* Student header — clickable to view details */}
+      <div style={{ marginBottom: 12, borderRadius: 20, overflow: 'hidden', boxShadow: '0 2px 20px rgba(90,60,170,0.07)', cursor: onViewStudent ? 'pointer' : 'default' }} onClick={onViewStudent}>
         <div style={{
           padding: 20,
           background: isActive ? 'linear-gradient(135deg, #5a3aaa, #7c5cc7)' : 'rgba(255,255,255,0.55)',
           border: isActive ? 'none' : '1px solid rgba(255,255,255,0.85)',
           WebkitBackdropFilter: 'blur(20px)', backdropFilter: 'blur(20px)',
+          transition: 'background 0.2s',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
             <div style={{ width: 52, height: 52, borderRadius: '50%', background: isActive ? 'rgba(255,255,255,0.2)' : 'rgba(90,60,170,0.12)', border: `2px solid ${isActive ? 'rgba(255,255,255,0.3)' : 'rgba(90,60,170,0.2)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: isActive ? '#fff' : '#5a3aaa', flexShrink: 0 }}>
               {initials}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, cursor: 'pointer' }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: isActive ? '#fff' : '#1e1040', marginBottom: 4 }}>{student.name}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, fontWeight: 700, color: isActive ? 'rgba(255,255,255,0.9)' : lc, background: isActive ? 'rgba(255,255,255,0.2)' : `${lc}15`, border: `1.5px solid ${isActive ? 'rgba(255,255,255,0.3)' : `${lc}30`}`, padding: '3px 10px', borderRadius: 20 }}>{student.level}</span>
                 <span style={{ fontSize: 12, color: isActive ? 'rgba(255,255,255,0.7)' : 'rgba(30,16,64,0.45)', display: 'flex', alignItems: 'center', gap: 4 }}>
                   <ClockIcon size={12} color={isActive ? 'rgba(255,255,255,0.7)' : 'rgba(30,16,64,0.45)'} />{session?.time}
                 </span>
+                {onViewStudent && <span style={{ fontSize: 11, color: isActive ? 'rgba(255,255,255,0.6)' : 'rgba(30,16,64,0.3)', fontStyle: 'italic' }}>tap to view profile</span>}
               </div>
             </div>
             {isActive && elapsed != null && (
@@ -225,7 +227,7 @@ export default function SessionPlan({ student, session, onBack, onStartSession, 
             Start Session
           </button>
         )}
-        <button onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000) }} style={{ flex: 1, padding: '14px', borderRadius: 16, background: '#5a3aaa', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+        <button onClick={() => { setSaved(true); setTimeout(() => onBack(), 600) }} style={{ flex: 1, padding: '14px', borderRadius: 16, background: '#5a3aaa', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           {saved ? <><CheckIcon size={16} color="#fff" /> Saved!</> : 'Save Plan'}
         </button>
       </div>
