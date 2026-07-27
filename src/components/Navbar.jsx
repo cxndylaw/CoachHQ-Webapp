@@ -1,9 +1,19 @@
 import { HomeIcon, UsersIcon, ClipboardIcon, CalendarIcon, SettingsIcon } from './Icons'
 
+const CourtIcon = ({ size = 24, color = '#1e1040' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <line x1="12" y1="3" x2="12" y2="21" />
+    <line x1="3" y1="7" x2="21" y2="7" />
+    <line x1="3" y1="17" x2="21" y2="17" />
+  </svg>
+)
+
 const tabs = [
   { Icon: HomeIcon, label: 'Home', key: 'dashboard' },
   { Icon: UsersIcon, label: 'Students', key: 'students' },
   { Icon: ClipboardIcon, label: 'Drills', key: 'drills' },
+  { Icon: CourtIcon, label: 'Court', key: 'court' },
   { Icon: CalendarIcon, label: 'Schedule', key: 'schedule' },
   { Icon: SettingsIcon, label: 'Settings', key: 'settings' },
 ]

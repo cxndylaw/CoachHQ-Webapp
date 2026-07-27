@@ -29,16 +29,17 @@ function EditSessionModal({ session, drills, onClose, onSave, coachId }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'flex-end', zIndex: 999,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+      padding: 20,
     }}>
       <div style={{
-        width: '100%', background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '20px', maxHeight: '90vh', overflowY: 'auto',
+        width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
+        borderRadius: 24, padding: '24px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(90,60,170,0.3)',
       }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#1e1040', marginBottom: 4 }}>Edit Session</div>
-        <div style={{ fontSize: 13, color: 'rgba(30,16,64,0.5)', marginBottom: 16 }}>{session.student_name}</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e1040', marginBottom: 4 }}>Edit Session</div>
+        <div style={{ fontSize: 13, color: 'rgba(30,16,64,0.5)', marginBottom: 20 }}>{session.student_name}</div>
 
         <div style={{ marginBottom: 16 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Time</label>
@@ -94,15 +95,16 @@ function AvailabilityModal({ day, onClose, onAdd, coachId }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'flex-end', zIndex: 999,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+      padding: 20,
     }}>
       <div style={{
-        width: '100%', background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '20px', maxHeight: '90vh', overflowY: 'auto',
+        width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
+        borderRadius: 24, padding: '24px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(90,60,170,0.3)',
       }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#1e1040', marginBottom: 16 }}>Add Availability</div>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e1040', marginBottom: 20 }}>Add Availability</div>
 
         <div style={{ marginBottom: 12 }}>
           <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>From</label>
@@ -130,9 +132,12 @@ export default function Schedule({ onViewSession }) {
   const [editingSession, setEditingSession] = useState(null)
   const [showAvailModal, setShowAvailModal] = useState(null)
   const [showAvailabilities, setShowAvailabilities] = useState(false)
-  const [availabilities, setAvailabilities] = useState({})
-  const [coachId, setCoachId] = useState(null)
+  const [showAllDays, setShowAllDays] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [coachId, setCoachId] = useState(null)
+  const [availabilities, setAvailabilities] = useState({})
+
+  const daysToShow = showAllDays ? weekData : weekData.filter(d => d.sessions.length > 0)
 
   useEffect(() => {
     loadData()
@@ -207,7 +212,36 @@ export default function Schedule({ onViewSession }) {
   }
 
   if (loading) {
-    return <div style={{ padding: 20, textAlign: 'center', color: 'rgba(30,16,64,0.5)' }}>Loading schedule...</div>
+    return (
+      <div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ fontSize: 36, fontWeight: 800, color: '#1e1040', letterSpacing: '-0.5px' }}>Schedule</div>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(90,60,170,0.1)', animation: 'pulse 2s infinite' }} />
+        </div>
+
+        <div style={{ marginBottom: 16, height: 44, borderRadius: 12, background: 'rgba(90,60,170,0.08)', animation: 'pulse 2s infinite' }} />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 }}>
+          {[...Array(6)].map((_, i) => (
+            <div key={i} style={{ ...G, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', animation: `pulse 2s infinite ${i * 0.1}s` }}>
+              <div style={{ background: 'rgba(90,60,170,0.08)', padding: '12px 16px', borderBottom: '1px solid rgba(90,60,170,0.1)', height: 60 }} />
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8, padding: 12, minHeight: 200 }}>
+                {[...Array(2)].map((_, j) => (
+                  <div key={j} style={{ background: 'rgba(90,60,170,0.08)', borderRadius: 12, height: 60 }} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ ...G, padding: 16, height: 80, background: 'rgba(90,60,170,0.08)', animation: 'pulse 2s infinite' }} />
+          <div style={{ ...G, padding: 16, height: 80, background: 'rgba(90,60,170,0.08)', animation: 'pulse 2s infinite' }} />
+        </div>
+
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+      </div>
+    )
   }
 
   return (
@@ -221,20 +255,29 @@ export default function Schedule({ onViewSession }) {
       )}
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
         <div style={{ fontSize: 36, fontWeight: 800, color: '#1e1040', letterSpacing: '-0.5px' }}>Schedule</div>
-        <button onClick={() => setShowAvailabilities(!showAvailabilities)} style={{
-          padding: '8px 14px', borderRadius: 12, background: showAvailabilities ? '#5a3aaa' : 'rgba(90,60,170,0.08)',
-          border: '1.5px solid rgba(90,60,170,0.15)', color: showAvailabilities ? '#fff' : '#5a3aaa',
-          fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          {showAvailabilities ? 'Hide' : 'Show'} Availabilities
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setShowAllDays(!showAllDays)} style={{
+            padding: '8px 14px', borderRadius: 12, background: !showAllDays ? '#5a3aaa' : 'rgba(90,60,170,0.08)',
+            border: '1.5px solid rgba(90,60,170,0.15)', color: !showAllDays ? '#fff' : '#5a3aaa',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            {showAllDays ? 'All Days' : 'Coaching Only'}
+          </button>
+          <button onClick={() => setShowAvailabilities(!showAvailabilities)} style={{
+            padding: '8px 14px', borderRadius: 12, background: showAvailabilities ? '#5a3aaa' : 'rgba(90,60,170,0.08)',
+            border: '1.5px solid rgba(90,60,170,0.15)', color: showAvailabilities ? '#fff' : '#5a3aaa',
+            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          }}>
+            {showAvailabilities ? 'Hide' : 'Show'} Availabilities
+          </button>
+        </div>
       </div>
 
       {/* Weekly view */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
-        {weekData.map(({ day, sessions }) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 24 }}>
+        {daysToShow.map(({ day, sessions }) => (
           <div key={day} style={{ ...G, padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
             {/* Day header */}
             <div style={{ background: 'rgba(90,60,170,0.08)', padding: '12px 16px', borderBottom: '1px solid rgba(90,60,170,0.1)' }}>
@@ -310,9 +353,11 @@ export default function Schedule({ onViewSession }) {
         </div>
         <div style={{ ...G, padding: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Days Scheduled</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#5a3aaa' }}>{weekData.filter(d => d.sessions.length > 0).length}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#5a3aaa' }}>{daysToShow.filter(d => d.sessions.length > 0).length}</div>
         </div>
       </div>
+
+      <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
     </div>
   )
 }

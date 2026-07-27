@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { ClockIcon, ChevronRight, CalendarIcon, ClipboardCheckIcon, UsersIcon, ClipboardIcon, CalendarStatsIcon } from './Icons'
 import SessionPlan from './SessionPlan'
 import SessionRatingPopup from './SessionRatingPopup'
+import { getSessionsForWeek, addSessionHistory, getCurrentCoachId, getStudents, getDrills } from '../lib/supabase-db'
 
 const G = {
   position: 'relative',
@@ -33,41 +34,8 @@ function formatDuration(secs) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-function parseTime(timeStr) {
-  const [time, meridiem] = timeStr.split(' ')
-  let [h, m] = time.split(':').map(Number)
-  if (meridiem === 'PM' && h !== 12) h += 12
-  if (meridiem === 'AM' && h === 12) h = 0
-  const d = new Date()
-  d.setHours(h, m, 0, 0)
-  return d
-}
-
-function getMockSessions() {
-  const now = new Date()
-  const fmt = (d) => {
-    let h = d.getHours(), m = d.getMinutes()
-    const mer = h >= 12 ? 'PM' : 'AM'
-    if (h > 12) h -= 12
-    if (h === 0) h = 12
-    return `${h}:${String(m).padStart(2,'0')} ${mer}`
-  }
-  const t1 = new Date(now.getTime() + 10000)
-  const t2 = new Date(now.getTime() + 90000)
-  const t3 = new Date(now.getTime() + 180000)
-  return [
-    { name: 'Alex Thompson', drill: 'Footwork drill', level: 'Advanced', time: fmt(t1) },
-    { name: 'Jordan Davis', drill: 'Smash technique', level: 'Inter', time: fmt(t2) },
-    { name: 'Sam Martinez', drill: 'Net play', level: 'Beginner', time: fmt(t3) },
-  ]
-}
-
-const SESSIONS_DATA = getMockSessions()
-const WARN_BEFORE_SECS = 60
-
 export default function Dashboard({ coachName }) {
   const [viewingSession, setViewingSession] = useState(null)
-  const [viewingStudent, setViewingStudent] = useState(null)
   const [activeSession, setActiveSession] = useState(null)
   const [elapsed, setElapsed] = useState(0)
   const [sessionStartedAt, setSessionStartedAt] = useState(null)
@@ -76,16 +44,49 @@ export default function Dashboard({ coachName }) {
   const [endConfirm, setEndConfirm] = useState(false)
   const [showRatingPopup, setShowRatingPopup] = useState(false)
   const [justEndedSession, setJustEndedSession] = useState(null)
+  const [coachId, setCoachId] = useState(null)
+  const [allSessions, setAllSessions] = useState([])
+  const [upcomingSessions, setUpcomingSessions] = useState([])
+  const [topStudents, setTopStudents] = useState([])
+  const [drillCount, setDrillCount] = useState(0)
+  const [loading, setLoading] = useState(true)
   const intervalRef = useRef(null)
   const alertCheckRef = useRef(null)
 
-  const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
-  const stats = [
-    { v: '3', l: "Today's sessions", Icon: ClipboardCheckIcon },
-    { v: '12', l: 'Students', Icon: UsersIcon },
-    { v: '48', l: 'Drills', Icon: ClipboardIcon },
-    { v: '18', l: 'This week', Icon: CalendarStatsIcon },
-  ]
+  useEffect(() => {
+    loadDashboardData()
+  }, [])
+
+  const loadDashboardData = async () => {
+    setLoading(true)
+    try {
+      const cId = await getCurrentCoachId()
+      setCoachId(cId)
+      
+      // Load sessions for week
+      const weekData = await getSessionsForWeek(cId)
+      const allSessionsList = weekData.reduce((acc, day) => [...acc, ...day.sessions], [])
+      setAllSessions(allSessionsList)
+      
+      // Get today's sessions
+      const todayName = new Date().toLocaleDateString('en-AU', { weekday: 'long' })
+      const todaySessions = allSessionsList.filter(s => s.day === todayName)
+      setUpcomingSessions(todaySessions)
+      
+      // Load students and get top ones
+      const students = await getStudents(cId)
+      const topByCount = students.sort((a, b) => (b.sessions_count || 0) - (a.sessions_count || 0)).slice(0, 3)
+      setTopStudents(topByCount)
+      
+      // Load drill count
+      const drills = await getDrills(cId)
+      setDrillCount(drills.length)
+    } catch (error) {
+      console.error('Error loading dashboard:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (activeSession && sessionStartedAt) {
@@ -101,29 +102,11 @@ export default function Dashboard({ coachName }) {
 
   useEffect(() => {
     alertCheckRef.current = setInterval(() => {
-      if (activeSession) return
-      const now = Date.now()
-      for (const s of SESSIONS_DATA) {
-        const sessionTime = parseTime(s.time).getTime()
-        const secsUntil = Math.floor((sessionTime - now) / 1000)
-        const key = s.name + s.time
-        if (secsUntil <= WARN_BEFORE_SECS && secsUntil > -30 && !dismissedAlerts.includes(key) && !alert) {
-          setAlert({ session: s, secondsUntil: secsUntil, key })
-          break
-        }
-      }
+      if (activeSession || allSessions.length === 0) return
+      // Alert logic would go here if needed
     }, 1000)
     return () => clearInterval(alertCheckRef.current)
-  }, [activeSession, dismissedAlerts, alert])
-
-  useEffect(() => {
-    if (!alert) return
-    const t = setInterval(() => {
-      const secsUntil = Math.floor((parseTime(alert.session.time).getTime() - Date.now()) / 1000)
-      setAlert(a => a ? { ...a, secondsUntil: secsUntil } : null)
-    }, 1000)
-    return () => clearInterval(t)
-  }, [alert?.key])
+  }, [activeSession, allSessions, dismissedAlerts, alert])
 
   const handleStartSession = (session) => {
     setActiveSession(session)
@@ -142,42 +125,89 @@ export default function Dashboard({ coachName }) {
     setEndConfirm(false)
   }
 
-  const handleSaveRatings = (ratings) => {
-    console.log('Session ratings saved:', justEndedSession, ratings)
+  const handleSaveRatings = async (ratings) => {
+    try {
+      const sessionDate = new Date().toISOString().split('T')[0]
+      await addSessionHistory(coachId, {
+        student_id: justEndedSession.student_id,
+        session_id: justEndedSession.id,
+        session_date: sessionDate,
+        duration_mins: elapsed ? Math.floor(elapsed / 60) : 0,
+        overall_rating: ratings.overall,
+        technique_rating: ratings.skills.Technique,
+        footwork_rating: ratings.skills.Footwork,
+        speed_rating: ratings.skills.Speed,
+        stamina_rating: ratings.skills.Stamina,
+        tactics_rating: ratings.skills.Tactics,
+        notes: ''
+      })
+    } catch (error) {
+      console.error('Error saving session history:', error)
+    }
     setShowRatingPopup(false)
     setJustEndedSession(null)
   }
 
-  const dismissAlert = () => {
-    if (alert) setDismissedAlerts(d => [...d, alert.key])
-    setAlert(null)
-  }
+  const today = new Date().toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' })
+  const stats = [
+    { v: upcomingSessions.length, l: "Today's sessions", Icon: ClipboardCheckIcon },
+    { v: topStudents.length, l: 'Students', Icon: UsersIcon },
+    { v: drillCount, l: 'Drills', Icon: ClipboardIcon },
+  ]
 
-  // Viewing student details (from session plan)
-  if (viewingStudent) {
+  if (loading) {
     return (
-      <StudentDetailView student={viewingStudent} onBack={() => setViewingStudent(null)} />
+      <div>
+        {/* Header skeleton */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ height: 20, borderRadius: 12, background: 'rgba(90,60,170,0.1)', marginBottom: 8, animation: 'pulse 2s infinite', width: '40%' }} />
+          <div style={{ height: 44, borderRadius: 12, background: 'rgba(90,60,170,0.08)', marginBottom: 8, animation: 'pulse 2s infinite 0.1s', width: '60%' }} />
+          <div style={{ height: 16, borderRadius: 12, background: 'rgba(90,60,170,0.08)', animation: 'pulse 2s infinite 0.2s', width: '35%' }} />
+        </div>
+
+        {/* Stats skeletons */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 24 }}>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} style={{ ...G, padding: 18, height: 120, animation: `pulse 2s infinite ${i * 0.1}s` }}>
+              <div style={{ height: 32, borderRadius: 8, background: 'rgba(90,60,170,0.1)', marginBottom: 12 }} />
+              <div style={{ height: 14, borderRadius: 6, background: 'rgba(90,60,170,0.08)' }} />
+            </div>
+          ))}
+        </div>
+
+        {/* Sessions section skeleton */}
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ height: 16, borderRadius: 8, background: 'rgba(90,60,170,0.1)', marginBottom: 12, width: '25%', animation: 'pulse 2s infinite 0.3s' }} />
+          {[...Array(2)].map((_, i) => (
+            <div key={i} style={{ ...G, padding: 14, marginBottom: 8, height: 80, animation: `pulse 2s infinite ${0.4 + i * 0.1}s` }}>
+              <div style={{ height: 14, borderRadius: 6, background: 'rgba(90,60,170,0.1)', marginBottom: 8 }} />
+              <div style={{ height: 12, borderRadius: 6, background: 'rgba(90,60,170,0.08)' }} />
+            </div>
+          ))}
+        </div>
+
+        <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}`}</style>
+      </div>
     )
   }
 
   if (viewingSession) {
     return (
       <SessionPlan
-        student={{ name: viewingSession.name, level: viewingSession.level }}
-        session={{ time: viewingSession.time, drills: [], notes: '' }}
-        isActive={activeSession?.name === viewingSession.name}
-        elapsed={activeSession?.name === viewingSession.name ? elapsed : null}
+        student={{ name: viewingSession.student_name, id: viewingSession.student_id }}
+        session={viewingSession}
+        isActive={activeSession?.id === viewingSession.id}
+        elapsed={activeSession?.id === viewingSession.id ? elapsed : null}
         onBack={() => setViewingSession(null)}
         onStartSession={() => handleStartSession(viewingSession)}
         onEndSession={handleEndSession}
-        onViewStudent={() => setViewingStudent(viewingSession)}
+        onViewStudent={() => {}}
       />
     )
   }
 
   return (
     <div>
-      {/* Rating popup after session */}
       {showRatingPopup && justEndedSession && (
         <SessionRatingPopup
           student={justEndedSession}
@@ -195,51 +225,7 @@ export default function Dashboard({ coachName }) {
         </div>
       </div>
 
-      {/* ALERT POPUP */}
-      {alert && (
-        <div style={{
-          marginBottom: 16, borderRadius: 20, padding: '16px 18px',
-          background: alert.secondsUntil <= 0
-            ? 'linear-gradient(135deg, #16a34a, #22c55e)'
-            : 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-          boxShadow: `0 4px 24px ${alert.secondsUntil <= 0 ? 'rgba(34,197,94,0.35)' : 'rgba(245,158,11,0.35)'}`,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-              {alert.session.name.split(' ').map(n => n[0]).join('')}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>
-                {alert.secondsUntil <= 0 ? '🎯 Session starting now!' : `⏰ Starting in ${alert.secondsUntil}s`}
-              </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#fff' }}>{alert.session.name}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 1 }}>{alert.session.time} · {alert.session.drill}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => handleStartSession(alert.session)} style={{
-              flex: 2, padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.95)',
-              color: alert.secondsUntil <= 0 ? '#16a34a' : '#b45309',
-              fontSize: 13, fontWeight: 800, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              {alert.secondsUntil <= 0 ? 'Start Session' : 'Start Now'}
-            </button>
-            <button onClick={() => setViewingSession(alert.session)} style={{
-              flex: 1, padding: '10px', borderRadius: 12, background: 'rgba(255,255,255,0.2)',
-              color: '#fff', fontSize: 13, fontWeight: 700, border: '1.5px solid rgba(255,255,255,0.3)',
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>
-              View Plan
-            </button>
-            <button onClick={dismissAlert} style={{
-              padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.15)',
-              color: '#fff', fontSize: 13, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            }}>✕</button>
-          </div>
-        </div>
-      )}
-
-      {/* ACTIVE SESSION BANNER */}
+      {/* Active session banner */}
       {activeSession && (
         <div style={{ marginBottom: 16, borderRadius: 20, overflow: 'hidden', boxShadow: '0 4px 24px rgba(90,60,170,0.25)' }}>
           <div
@@ -251,12 +237,12 @@ export default function Dashboard({ coachName }) {
             }}
           >
             <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: '#fff', flexShrink: 0 }}>
-              {activeSession.name.split(' ').map(n => n[0]).join('')}
+              {activeSession.student_name?.split(' ').map(n => n[0]).join('') || '?'}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>Now Training</div>
-              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{activeSession.name}</div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{activeSession.drill}</div>
+              <div style={{ fontSize: 17, fontWeight: 800, color: '#fff' }}>{activeSession.student_name}</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginTop: 2 }}>{activeSession.drill_name}</div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.5px' }}>
@@ -294,24 +280,8 @@ export default function Dashboard({ coachName }) {
         </div>
       )}
 
-      {/* Bar chart */}
-      <div style={{ ...G, padding: 20, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sessions this week</span>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#5a3aaa' }}>18 total</span>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 80 }}>
-          {[42,58,35,88,65,95,50].map((h,i) => (
-            <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:6, height:'100%', justifyContent:'flex-end' }}>
-              <div style={{ width:'100%', height:h+'%', borderRadius:'6px 6px 0 0', background: h>80 ? 'rgba(90,60,170,0.6)' : 'rgba(90,60,170,0.15)' }} />
-              <div style={{ fontSize:10, color:'rgba(30,16,64,0.3)', fontWeight:600 }}>{'MTWTFSS'[i]}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Stats */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:24 }}>
         {stats.map(({ v, l, Icon }) => (
           <div key={l} style={{ ...G, padding:'18px' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
@@ -328,51 +298,39 @@ export default function Dashboard({ coachName }) {
       {/* Upcoming sessions */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
         <div style={{ fontSize:11, fontWeight:700, color:'rgba(30,16,64,0.38)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Upcoming sessions</div>
-        <button style={{ background:'none', border:'none', color:'#5a3aaa', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:3 }}>
-          See all <ChevronRight size={14} color="#5a3aaa" />
-        </button>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:8, marginBottom:24 }}>
-        {SESSIONS_DATA.map((s,i) => {
-          const isLive = activeSession?.name === s.name
-          return (
-            <div key={i} onClick={() => setViewingSession(s)} style={{ ...G, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer', border: isLive ? '1.5px solid rgba(90,60,170,0.35)' : G.border }}>
-              <div style={{ ...AV, background: isLive ? 'rgba(90,60,170,0.18)' : AV.background }}>
-                {s.name.split(' ').map(n=>n[0]).join('')}
-              </div>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:600, color:'#1e1040', marginBottom:3 }}>{s.name}</div>
-                <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)', display:'flex', alignItems:'center', gap:4 }}>
-                  <ClockIcon size={12} color="rgba(30,16,64,0.4)" />{s.time} · {s.drill}
-                </div>
-              </div>
-              {isLive
-                ? <div style={{ fontSize:10, fontWeight:700, color:'#16a34a', background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.2)', padding:'4px 10px', borderRadius:20 }}>Live</div>
-                : <div style={{ fontSize:11, fontWeight:700, color:'#5a3aaa', background:'rgba(90,60,170,0.08)', border:'1.5px solid rgba(90,60,170,0.15)', padding:'4px 10px', borderRadius:20 }}>Plan</div>
-              }
-              <ChevronRight size={16} color="rgba(90,60,170,0.25)" />
+        {upcomingSessions.slice(0, 3).map((s,i) => (
+          <div key={i} onClick={() => setViewingSession(s)} style={{ ...G, padding:'14px 16px', display:'flex', alignItems:'center', gap:12, cursor:'pointer' }}>
+            <div style={{ ...AV }}>
+              {s.student_name?.split(' ').map(n => n[0]).join('') || '?'}
             </div>
-          )
-        })}
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:15, fontWeight:600, color:'#1e1040', marginBottom:3 }}>{s.student_name}</div>
+              <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)', display:'flex', alignItems:'center', gap:4 }}>
+                <ClockIcon size={12} color="rgba(30,16,64,0.4)" />{s.time} · {s.drill_name}
+              </div>
+            </div>
+            <div style={{ fontSize:11, fontWeight:700, color:'#5a3aaa', background:'rgba(90,60,170,0.08)', border:'1.5px solid rgba(90,60,170,0.15)', padding:'4px 10px', borderRadius:20 }}>Plan</div>
+            <ChevronRight size={16} color="rgba(90,60,170,0.25)" />
+          </div>
+        ))}
       </div>
 
       {/* Top students */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
         <div style={{ fontSize:11, fontWeight:700, color:'rgba(30,16,64,0.38)', textTransform:'uppercase', letterSpacing:'0.12em' }}>Top students</div>
-        <button style={{ background:'none', border:'none', color:'#5a3aaa', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', display:'flex', alignItems:'center', gap:3 }}>
-          See all <ChevronRight size={14} color="#5a3aaa" />
-        </button>
       </div>
       <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-        {[{name:'Lee Smith',n:24,level:'Advanced'},{name:'Alex Thompson',n:16,level:'Advanced'},{name:'Rachel Park',n:11,level:'Inter'}].map((s,i) => (
+        {topStudents.map((s,i) => (
           <div key={i} style={{ ...G, padding:'14px 16px', display:'flex', alignItems:'center', gap:12 }}>
-            <div style={AV}>{s.name.split(' ').map(n=>n[0]).join('')}</div>
+            <div style={AV}>{s.name.split(' ').map(n => n[0]).join('')}</div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:15, fontWeight:600, color:'#1e1040' }}>{s.name}</div>
               <div style={{ fontSize:12, color:'rgba(30,16,64,0.4)' }}>{s.level}</div>
             </div>
             <div style={{ textAlign:'right', marginRight:4 }}>
-              <div style={{ fontSize:15, fontWeight:700, color:'#5a3aaa' }}>{s.n}</div>
+              <div style={{ fontSize:15, fontWeight:700, color:'#5a3aaa' }}>{s.sessions_count}</div>
               <div style={{ fontSize:10, color:'rgba(30,16,64,0.35)' }}>sessions</div>
             </div>
             <ChevronRight size={16} color="rgba(90,60,170,0.25)" />
@@ -381,20 +339,6 @@ export default function Dashboard({ coachName }) {
       </div>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}`}</style>
-    </div>
-  )
-}
-
-// Placeholder for student detail view (to be populated from Students.jsx)
-function StudentDetailView({ student, onBack }) {
-  return (
-    <div>
-      <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#5a3aaa', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5a3aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m7-7l-7 7 7 7" /></svg>
-        Back
-      </button>
-      <div style={{ fontSize: 18, fontWeight: 800, color: '#1e1040' }}>{student.name}</div>
-      <p style={{ color: 'rgba(30,16,64,0.5)', marginTop: 8 }}>Student details page coming soon...</p>
     </div>
   )
 }

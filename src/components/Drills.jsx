@@ -1,5 +1,7 @@
-import { useState } from 'react'
-import { SearchIcon, ChevronRight, RunIcon, BoltIcon, TargetIcon, FlameIcon, ChessIcon } from './Icons'
+import { useState, useEffect } from 'react'
+import { SearchIcon, ChevronRight, PencilIcon } from './Icons'
+import { getDrills, addDrill, updateDrill, deleteDrill, getCurrentCoachId } from '../lib/supabase-db'
+import BadmintonCourt from './BadmintonCourt'
 
 const G = {
   position: 'relative',
@@ -11,291 +13,308 @@ const G = {
   boxShadow: '0 2px 20px rgba(90,60,170,0.07)',
 }
 
-const TechIcon = (p) => (
-  <svg width={p.size||22} height={p.size||22} viewBox="0 0 24 24" fill="none" stroke={p.color||'currentColor'} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/>
-  </svg>
-)
-
-function HeartIcon({ filled, size = 18, color = '#5a3aaa' }) {
+function StarPicker({ value, onChange }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? color : 'none'} stroke={color} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" />
-    </svg>
-  )
-}
-
-function Stars({ n, max = 5, size = 14 }) {
-  return (
-    <div style={{ display: 'flex', gap: 2 }}>
-      {Array.from({ length: max }).map((_, i) => (
-        <svg key={i} width={size} height={size} viewBox="0 0 24 24" fill={i < n ? '#f59e0b' : 'none'} stroke={i < n ? '#f59e0b' : 'rgba(30,16,64,0.2)'} strokeWidth="1.5">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-        </svg>
+    <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginBottom: 8 }}>
+      {[1,2,3,4,5].map(i => (
+        <button key={i} onClick={() => onChange(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, transition: 'transform 0.2s' }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24"
+            fill={i <= value ? '#f59e0b' : 'none'}
+            stroke={i <= value ? '#f59e0b' : 'rgba(30,16,64,0.15)'}
+            strokeWidth="1.5">
+            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+          </svg>
+        </button>
       ))}
     </div>
   )
 }
 
-const DRILLS = [
-  {
-    id: 1, name: 'Full Court Footwork', category: 'Footwork', difficulty: 4,
-    tags: ['Footwork', 'Speed', '1-1 Training', 'Group Training'],
-    description: 'Point to any of the six corners. Students will go to the side/corner that you point to.',
-    duration: '5–10 minutes',
-    reps: '30 x 4 (Intermediate–Advanced)\n20 x 4 (Beginner)',
-    focus: ['Split Step', 'Get back to the middle faster', 'Go all the way to the corners'],
-    equipment: ['Racquet', 'Cones (Optional)'],
-    Icon: RunIcon,
-  },
-  {
-    id: 2, name: 'Net Kill', category: 'Technique', difficulty: 3,
-    tags: ['Technique', 'Net Play'],
-    description: 'Player at net intercepts shuttle before it drops below tape height. Focus on fast reaction and flat contact.',
-    duration: '10 minutes',
-    reps: '20 x 3',
-    focus: ['Tight net entry', 'Flat racquet angle', 'Quick recovery'],
-    equipment: ['Racquet', 'Shuttle'],
-    Icon: TechIcon,
-  },
-  {
-    id: 3, name: 'Clear', category: 'Technique', difficulty: 2,
-    tags: ['Technique', 'Beginner Friendly'],
-    description: 'High defensive clear from baseline to baseline. Focus on full swing and follow-through.',
-    duration: '10 minutes',
-    reps: '15 x 4',
-    focus: ['Full arm extension', 'Contact above head', 'Land shuttle deep'],
-    equipment: ['Racquet', 'Shuttle'],
-    Icon: TechIcon,
-  },
-  {
-    id: 4, name: 'Smash and Kill', category: 'Smash', difficulty: 5,
-    tags: ['Smash', 'Attack', 'Advanced'],
-    description: 'Feeder at net, player jumps and smashes from mid-court, then rushes net to kill the return.',
-    duration: '15 minutes',
-    reps: '10 x 5',
-    focus: ['Jump smash timing', 'Fast net recovery', 'Aggressive follow-up'],
-    equipment: ['Racquet', 'Shuttle', 'Feeder'],
-    Icon: BoltIcon,
-  },
-  {
-    id: 5, name: 'Serve and Return', category: 'Serve', difficulty: 2,
-    tags: ['Serve', 'Beginner Friendly'],
-    description: 'Low serve to T, partner returns cross-court. Rotate after 10 serves.',
-    duration: '10 minutes',
-    reps: '10 x 4 per player',
-    focus: ['Low flat serve', 'Consistent placement', 'Ready position after serve'],
-    equipment: ['Racquet', 'Shuttle'],
-    Icon: TargetIcon,
-  },
-  {
-    id: 6, name: 'Shadow Footwork', category: 'Speed & Stamina', difficulty: 3,
-    tags: ['Footwork', 'Speed', 'Stamina'],
-    description: 'Move to all 6 corners in sequence without shuttle. Focus on split step and recovery between corners.',
-    duration: '5 minutes',
-    reps: '6 corners x 6 rounds',
-    focus: ['Split step before each move', 'Explosive first step', 'Return to center'],
-    equipment: ['None'],
-    Icon: FlameIcon,
-  },
-  {
-    id: 7, name: 'Tactics: 3-2-1', category: 'Tactics', difficulty: 4,
-    tags: ['Tactics', 'Advanced', 'Group Training'],
-    description: 'Attacker plays 3 smashes, lifts, then closes with 1 net kill. Defender must survive and counter.',
-    duration: '20 minutes',
-    reps: '5 rounds each side',
-    focus: ['Shot selection under pressure', 'Transition from defense to attack', 'Court positioning'],
-    equipment: ['Racquet', 'Shuttle'],
-    Icon: ChessIcon,
-  },
-  {
-    id: 8, name: 'Drop Shot Routine', category: 'Technique', difficulty: 3,
-    tags: ['Technique', 'Net Play', '1-1 Training'],
-    description: 'From rear court, play a steep drop to the net. Follow in and play net exchange.',
-    duration: '10 minutes',
-    reps: '20 x 3',
-    focus: ['Disguise the drop', 'Steep angle', 'Follow into net quickly'],
-    equipment: ['Racquet', 'Shuttle'],
-    Icon: TechIcon,
-  },
-]
+function AddDrillModal({ onClose, onAdd, coachId }) {
+  const [form, setForm] = useState({ name: '', category: 'Footwork', difficulty: 3, description: '', focus_points: '' })
+  const [loading, setLoading] = useState(false)
 
-const CATS = ['All', 'Footwork', 'Technique', 'Smash', 'Serve', 'Speed & Stamina', 'Tactics']
-const DIFF_LABEL = ['', 'Beginner', 'Beginner', 'Intermediate', 'Advanced', 'Expert']
-const DIFF_COLOR = ['', '#16a34a', '#16a34a', '#3b82f6', '#5a3aaa', '#dc2626']
+  const handleAdd = async () => {
+    if (!form.name) {
+      alert('Drill name required')
+      return
+    }
+    setLoading(true)
+    const focusArray = form.focus_points.split('\n').filter(p => p.trim())
+    await onAdd({ ...form, focus_points: focusArray })
+    setLoading(false)
+    onClose()
+  }
 
-function DrillDetail({ drill, favourites, onToggleFav, onBack }) {
-  const isFav = favourites.includes(drill.id)
+  const categories = ['Footwork', 'Technique', 'Smash', 'Serve', 'Speed & Stamina', 'Tactics', 'Net Play']
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+      padding: 20,
+    }}>
+      <div style={{
+        width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
+        borderRadius: 24, padding: '24px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(90,60,170,0.3)',
+      }}>
+        <div style={{ fontSize: 20, fontWeight: 800, color: '#1e1040', marginBottom: 20 }}>Add Drill</div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Name *</label>
+          <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Drill name" style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }} />
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Category</label>
+            <select value={form.category} onChange={e => setForm({...form, category: e.target.value})} style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', cursor: 'pointer' }}>
+              {categories.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Difficulty</label>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(30,16,64,0.5)' }}>{'⭐'.repeat(form.difficulty)} Level {form.difficulty}</div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Difficulty (Click Stars)</label>
+          <StarPicker value={form.difficulty} onChange={difficulty => setForm({...form, difficulty})} />
+        </div>
+
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Description</label>
+          <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="What's this drill about?" style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} />
+        </div>
+
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Focus Points (one per line)</label>
+          <textarea value={form.focus_points} onChange={e => setForm({...form, focus_points: e.target.value})} placeholder="• Quick footwork&#10;• Anticipation&#10;• Reaction time" style={{ width: '100%', padding: '10px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box', minHeight: 80, resize: 'vertical' }} />
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={onClose} style={{ flex: 1, padding: '12px', borderRadius: 12, background: 'rgba(90,60,170,0.08)', border: '1.5px solid rgba(90,60,170,0.15)', color: '#5a3aaa', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={handleAdd} disabled={loading} style={{ flex: 1, padding: '12px', borderRadius: 12, background: '#5a3aaa', border: 'none', color: '#fff', fontSize: 14, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.6 : 1 }}>{loading ? 'Adding...' : 'Add Drill'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DrillDetailView({ drill, onBack, onEdit, onDelete, coachId }) {
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showCourt, setShowCourt] = useState(false)
+  const [courtData, setCourtData] = useState(drill.court_data || null)
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete ${drill.name}? This cannot be undone.`)) return
+    setIsDeleting(true)
+    await onDelete(drill.id)
+    setIsDeleting(false)
+  }
+
+  const handleSaveCourt = async (newCourtData) => {
+    setCourtData(newCourtData)
+    // Save to Supabase
+    await updateDrill(coachId, drill.id, { court_data: newCourtData })
+    setShowCourt(false)
+  }
+
+  if (showCourt) {
+    return (
+      <div>
+        <button onClick={() => setShowCourt(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#5a3aaa', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5a3aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m7-7l-7 7 7 7" /></svg>
+          Back to Drill
+        </button>
+        <BadmintonCourt courtData={courtData} onSave={handleSaveCourt} />
+      </div>
+    )
+  }
+
   return (
     <div>
       <button onClick={onBack} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: '#5a3aaa', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20, padding: 0 }}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5a3aaa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5m7-7l-7 7 7 7" /></svg>
-        Drills
+        Back
       </button>
 
-      {/* Header card */}
-      <div style={{ ...G, padding: 20, marginBottom: 12 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#1e1040', letterSpacing: '-0.3px', marginBottom: 6 }}>{drill.name}</div>
-            <Stars n={drill.difficulty} />
+      <div style={{ ...G, padding: 20, marginBottom: 16 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e1040', marginBottom: 8 }}>{drill.name}</div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', padding: '4px 10px', borderRadius: 20 }}>{'⭐'.repeat(drill.difficulty)}</span>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#5a3aaa', background: 'rgba(90,60,170,0.1)', padding: '4px 10px', borderRadius: 20 }}>{drill.category}</span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => onToggleFav(drill.id)} style={{ width: 36, height: 36, borderRadius: '50%', background: isFav ? 'rgba(90,60,170,0.1)' : 'rgba(90,60,170,0.06)', border: '1.5px solid rgba(90,60,170,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <HeartIcon filled={isFav} size={16} />
-            </button>
-            <button style={{ width: 36, height: 36, borderRadius: '50%', background: 'rgba(90,60,170,0.06)', border: '1.5px solid rgba(90,60,170,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5a3aaa" strokeWidth="1.75" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-            </button>
-          </div>
+          <p style={{ fontSize: 14, color: 'rgba(30,16,64,0.6)', lineHeight: '1.5' }}>{drill.description || 'No description'}</p>
         </div>
 
-        {/* Tags */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-          {drill.tags.map(t => (
-            <span key={t} style={{ fontSize: 11, fontWeight: 700, color: '#5a3aaa', background: 'rgba(90,60,170,0.08)', border: '1.5px solid rgba(90,60,170,0.12)', padding: '3px 10px', borderRadius: 20 }}>{t}</span>
-          ))}
-          <span style={{ fontSize: 11, fontWeight: 700, color: DIFF_COLOR[drill.difficulty], background: `${DIFF_COLOR[drill.difficulty]}15`, border: `1.5px solid ${DIFF_COLOR[drill.difficulty]}30`, padding: '3px 10px', borderRadius: 20 }}>{DIFF_LABEL[drill.difficulty]}</span>
+        {drill.focus_points && drill.focus_points.length > 0 && (
+          <div style={{ marginBottom: 16, paddingTop: 16, borderTop: '1px solid rgba(90,60,170,0.1)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Focus Points</div>
+            <ul style={{ margin: 0, paddingLeft: 20, color: 'rgba(30,16,64,0.6)', fontSize: 13 }}>
+              {(Array.isArray(drill.focus_points) ? drill.focus_points : drill.focus_points.split('\n')).map((point, i) => (
+                <li key={i} style={{ marginBottom: 6 }}>{point}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {courtData && (
+          <div style={{ marginBottom: 16, paddingTop: 16, borderTop: '1px solid rgba(90,60,170,0.1)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(30,16,64,0.4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Court Tactics Diagram</div>
+            <div style={{ fontSize: 12, color: 'rgba(30,16,64,0.6)', display: 'flex', gap: 12, alignItems: 'center' }}>
+              <span>📊 {courtData.players?.reduce((sum, p) => sum + p.points.length, 0) || 0} player positions • {courtData.lines?.length || 0} movement paths</span>
+              <button onClick={() => setShowCourt(true)} style={{ padding: '6px 12px', borderRadius: 10, background: 'rgba(90,60,170,0.12)', border: '1.5px solid rgba(90,60,170,0.2)', color: '#5a3aaa', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+          <button onClick={() => setShowCourt(true)} style={{ padding: '10px', borderRadius: 12, background: 'rgba(59,130,246,0.08)', border: '1.5px solid rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            🎾 Court
+          </button>
+          <button onClick={() => onEdit(drill)} style={{ padding: '10px', borderRadius: 12, background: 'rgba(90,60,170,0.08)', border: '1.5px solid rgba(90,60,170,0.15)', color: '#5a3aaa', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <PencilIcon size={14} color="#5a3aaa" /> Edit
+          </button>
+          <button onClick={handleDelete} disabled={isDeleting} style={{ padding: '10px', borderRadius: 12, background: 'rgba(239,68,68,0.08)', border: '1.5px solid rgba(239,68,68,0.15)', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: isDeleting ? 0.6 : 1 }}>
+            {isDeleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
-
-        {/* Description */}
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Description</div>
-        <div style={{ fontSize: 14, color: 'rgba(30,16,64,0.7)', lineHeight: 1.6, marginBottom: 16 }}>{drill.description}</div>
-
-        {/* Info row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ background: 'rgba(90,60,170,0.05)', borderRadius: 12, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Est. Duration</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1e1040' }}>{drill.duration}</div>
-          </div>
-          <div style={{ background: 'rgba(90,60,170,0.05)', borderRadius: 12, padding: 12 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Recommended Reps</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1e1040', whiteSpace: 'pre-line' }}>{drill.reps}</div>
-          </div>
-        </div>
       </div>
-
-      {/* Focus points */}
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, marginLeft: 4 }}>Focus Points</div>
-      <div style={{ ...G, padding: '4px 0', marginBottom: 12 }}>
-        {drill.focus.map((f, i, arr) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(90,60,170,0.06)' : 'none' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#5a3aaa', flexShrink: 0 }} />
-            <div style={{ fontSize: 14, color: '#1e1040' }}>{f}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Equipment */}
-      <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(30,16,64,0.38)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8, marginLeft: 4 }}>Equipment Needed</div>
-      <div style={{ ...G, padding: '4px 0', marginBottom: 12 }}>
-        {drill.equipment.map((e, i, arr) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', borderBottom: i < arr.length - 1 ? '1px solid rgba(90,60,170,0.06)' : 'none' }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(90,60,170,0.4)', flexShrink: 0 }} />
-            <div style={{ fontSize: 14, color: '#1e1040' }}>{e}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Use drill button */}
-      <button style={{ width: '100%', padding: '14px', borderRadius: 16, background: '#5a3aaa', color: '#fff', fontSize: 15, fontWeight: 700, border: 'none', cursor: 'pointer', fontFamily: 'inherit', marginBottom: 8 }}>
-        Add to Session
-      </button>
     </div>
   )
 }
 
 export default function Drills() {
   const [search, setSearch] = useState('')
-  const [cat, setCat] = useState('All')
-  const [showFavs, setShowFavs] = useState(false)
-  const [favourites, setFavourites] = useState([1, 4])
+  const [drills, setDrills] = useState([])
   const [selected, setSelected] = useState(null)
-  const [sort, setSort] = useState('name')
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [coachId, setCoachId] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const toggleFav = (id) => setFavourites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id])
+  useEffect(() => {
+    loadDrills()
+  }, [])
 
-  if (selected) return <DrillDetail drill={selected} favourites={favourites} onToggleFav={toggleFav} onBack={() => setSelected(null)} />
+  const loadDrills = async () => {
+    setLoading(true)
+    try {
+      const cId = await getCurrentCoachId()
+      setCoachId(cId)
+      const data = await getDrills(cId)
+      setDrills(data)
+    } catch (error) {
+      console.error('Error loading drills:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
-  let filtered = DRILLS.filter(d =>
-    d.name.toLowerCase().includes(search.toLowerCase()) &&
-    (cat === 'All' || d.category === cat) &&
-    (!showFavs || favourites.includes(d.id))
+  const handleAddDrill = async (data) => {
+    if (coachId) {
+      await addDrill(coachId, data)
+      await loadDrills()
+    }
+  }
+
+  const handleUpdateDrill = async (drill) => {
+    const newName = prompt('Update drill name:', drill.name)
+    if (!newName) return
+    if (coachId) {
+      await updateDrill(coachId, drill.id, { name: newName })
+      await loadDrills()
+      setSelected(null)
+    }
+  }
+
+  const handleDeleteDrill = async (drillId) => {
+    if (coachId) {
+      await deleteDrill(coachId, drillId)
+      await loadDrills()
+      setSelected(null)
+    }
+  }
+
+  const filtered = drills.filter(d => 
+    d.name.toLowerCase().includes(search.toLowerCase())
   )
-  if (sort === 'difficulty') filtered = [...filtered].sort((a, b) => b.difficulty - a.difficulty)
-  if (sort === 'name') filtered = [...filtered].sort((a, b) => a.name.localeCompare(b.name))
+
+  if (selected) {
+    return (
+      <DrillDetailView 
+        drill={selected} 
+        onBack={() => setSelected(null)} 
+        onEdit={handleUpdateDrill}
+        onDelete={handleDeleteDrill}
+        coachId={coachId}
+      />
+    )
+  }
 
   return (
     <div>
+      {showAddModal && coachId && (
+        <AddDrillModal onClose={() => setShowAddModal(false)} onAdd={handleAddDrill} coachId={coachId} />
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ fontSize: 36, fontWeight: 800, color: '#1e1040', letterSpacing: '-0.5px' }}>Drills</div>
-        <button onClick={() => setShowFavs(!showFavs)} style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 20,
-          border: '1.5px solid rgba(90,60,170,0.2)',
-          background: showFavs ? '#5a3aaa' : 'rgba(255,255,255,0.55)',
-          color: showFavs ? '#fff' : '#5a3aaa',
-          fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          <HeartIcon filled={showFavs} size={14} color={showFavs ? '#fff' : '#5a3aaa'} />
-          Favourites
-        </button>
+        <button onClick={() => setShowAddModal(true)} style={{ width: 40, height: 40, borderRadius: '50%', background: '#5a3aaa', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff', fontWeight: 800, fontSize: 20 }}>+</button>
       </div>
 
-      {/* Search + sort */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <div style={{ position: 'relative', flex: 1 }}>
-          <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }}>
-            <SearchIcon size={15} color="rgba(90,60,170,0.4)" />
-          </div>
-          <input placeholder="Search drills..." value={search} onChange={e => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '11px 12px 11px 36px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, color: '#1e1040', outline: 'none', boxSizing: 'border-box' }} />
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ position: 'relative' }}>
+          <SearchIcon size={18} color="rgba(30,16,64,0.3)" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+          <input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)} 
+            placeholder="Search drills..." 
+            style={{ width: '100%', padding: '11px 12px 11px 40px', borderRadius: 12, border: '1.5px solid rgba(90,60,170,0.15)', background: 'rgba(255,255,255,0.55)', fontSize: 14, fontFamily: 'inherit', color: '#1e1040', outline: 'none', boxSizing: 'border-box' }} 
+          />
         </div>
-        <select value={sort} onChange={e => setSort(e.target.value)} style={{
-          padding: '11px 12px', borderRadius: 12, border: '1px solid rgba(90,60,170,0.15)',
-          background: 'rgba(255,255,255,0.55)', fontSize: 13, color: '#5a3aaa', fontWeight: 600,
-          outline: 'none', cursor: 'pointer', fontFamily: 'inherit',
-        }}>
-          <option value="name">A–Z</option>
-          <option value="difficulty">Difficulty</option>
-        </select>
       </div>
 
-      {/* Category scroll */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'none' }}>
-        {CATS.map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{
-            padding: '7px 14px', borderRadius: 10, border: '1.5px solid rgba(90,60,170,0.15)',
-            background: cat === c ? '#5a3aaa' : 'rgba(255,255,255,0.55)',
-            color: cat === c ? '#fff' : '#5a3aaa',
-            fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
-          }}>{c}</button>
-        ))}
-      </div>
-
-      {/* Drill list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: 40, color: 'rgba(30,16,64,0.35)', fontSize: 14 }}>No drills found</div>
-        )}
-        {filtered.map((d) => (
-          <div key={d.id} onClick={() => setSelected(d)} style={{ ...G, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(90,60,170,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <d.Icon size={22} color="#5a3aaa" />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#1e1040', marginBottom: 4 }}>{d.name}</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Stars n={d.difficulty} size={12} />
-                <span style={{ fontSize: 11, color: DIFF_COLOR[d.difficulty], fontWeight: 600 }}>{DIFF_LABEL[d.difficulty]}</span>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(30,16,64,0.4)' }}>Loading drills...</div>
+      ) : filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: 40, color: 'rgba(30,16,64,0.4)' }}>No drills yet. Create your first one!</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {filtered.map(d => (
+            <div 
+              key={d.id} 
+              onClick={() => setSelected(d)}
+              style={{
+                ...G, 
+                padding: '14px 16px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: 12, 
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(90,60,170,0.12)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.55)'}
+            >
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#1e1040', marginBottom: 6 }}>{d.name}</div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#f59e0b' }}>{'⭐'.repeat(d.difficulty)}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(30,16,64,0.4)', background: 'rgba(90,60,170,0.08)', padding: '2px 8px', borderRadius: 12, fontWeight: 500 }}>{d.category}</span>
+                </div>
               </div>
+              <ChevronRight size={16} color="rgba(90,60,170,0.25)" />
             </div>
-            <button onClick={e => { e.stopPropagation(); toggleFav(d.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0 }}>
-              <HeartIcon filled={favourites.includes(d.id)} size={18} color={favourites.includes(d.id) ? '#5a3aaa' : 'rgba(90,60,170,0.25)'} />
-            </button>
-            <ChevronRight size={16} color="rgba(90,60,170,0.25)" />
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

@@ -55,14 +55,14 @@ export default function SessionRatingPopup({ student, onClose, onSave }) {
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
-      display: 'flex', alignItems: 'flex-end', zIndex: 999,
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999,
+      padding: 20,
     }}>
       <div style={{
-        width: '100%', background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
-        borderTopLeftRadius: 24, borderTopRightRadius: 24,
-        padding: '24px 20px 32px', maxHeight: '90vh', overflowY: 'auto',
-        boxShadow: '0 -4px 32px rgba(90,60,170,0.2)',
+        width: '100%', maxWidth: 440, background: 'linear-gradient(160deg,#e2ecff 0%,#ede8ff 45%,#e6f2ff 100%)',
+        borderRadius: 24, padding: '24px', maxHeight: '90vh', overflowY: 'auto',
+        boxShadow: '0 20px 60px rgba(90,60,170,0.3)',
       }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>

@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { onAuthStateChange, getSession } from './lib/auth'
-import { getProfile } from './lib/supabase'
+import { getProfile, createProfileIfNotExists } from './lib/supabase-db'
 import Auth from './components/Auth'
 import Dashboard from './components/Dashboard'
 import Students from './components/Students'
 import Drills from './components/Drills'
+import BadmintonCourt from './components/BadmintonCourt'
 import Schedule from './components/Schedule'
 import SessionPlan from './components/SessionPlan'
 import Settings from './components/Settings'
@@ -37,6 +38,12 @@ export default function App() {
         setUser(session.user)
         const p = await getProfile(session.user.id)
         setProfile(p)
+        // Ensure profile exists in Supabase
+        if (!p) {
+          await createProfileIfNotExists(session.user.id, session.user.email?.split('@')[0] || 'Coach')
+          const newProfile = await getProfile(session.user.id)
+          setProfile(newProfile)
+        }
       }
       setLoading(false)
     })
@@ -45,6 +52,11 @@ export default function App() {
       if (u) {
         const p = await getProfile(u.id)
         setProfile(p)
+        if (!p) {
+          await createProfileIfNotExists(u.id, u.email?.split('@')[0] || 'Coach')
+          const newProfile = await getProfile(u.id)
+          setProfile(newProfile)
+        }
       }
     })
     return () => subscription?.unsubscribe()
@@ -88,6 +100,7 @@ export default function App() {
     dashboard: <Dashboard coachName={coachName} />,
     students: <Students />,
     drills: <Drills />,
+    court: <BadmintonCourt />,
     schedule: <Schedule onViewSession={setViewingSession} />,
     settings: <Settings user={user} profile={profile} coachName={coachName} onNameUpdate={(name) => setProfile(p => ({ ...p, name }))} />,
   }
