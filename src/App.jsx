@@ -19,17 +19,13 @@ export default function App() {
   const [profile, setProfile] = useState(null)
   const [page, setPage] = useState(() => localStorage.getItem(PAGE_KEY) || 'dashboard')
   const [loading, setLoading] = useState(true)
+
   const scrollRef = useRef(null)
 
   const navigateTo = (p) => {
     setPage(p)
     localStorage.setItem(PAGE_KEY, p)
-
-    // Scroll content back to top
-    document.querySelector('.page-scroll')?.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    })
+    if (scrollRef.current) scrollRef.current.scrollTop = 0
   }
 
   useEffect(() => {
@@ -50,13 +46,6 @@ export default function App() {
     })
     return () => subscription?.unsubscribe()
   }, [])
-
-  useEffect(() => {
-  scrollRef.current?.scrollTo({
-    top: 0,
-    behavior: 'instant'
-  })
-}, [page])
 
   if (loading) return <LoadingScreen />
   if (!user) return <Auth onSuccess={() => window.location.reload()} />
@@ -81,14 +70,11 @@ export default function App() {
       color: '#1e1040',
     }}>
       {/* Scrollable content area — nav never moves */}
-      <div
-        ref={scrollRef}
-        style={{
-          flex: 1,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}
-      >
+      <div ref={scrollRef} style={{
+        flex: 1,
+        overflowY: 'auto',
+        overflowX: 'hidden',
+      }}>
         <div style={{ maxWidth: 600, margin: '0 auto', padding: '40px 20px 40px' }}>
           {pages[page]}
         </div>
